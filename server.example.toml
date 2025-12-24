@@ -13,6 +13,7 @@ base_domain = "tunnel.example.com"
 # TLS Certificates and Keys
 # Supported formats:
 #   - File path: "/etc/tunnel/server.crt" or "file:///etc/tunnel/server.crt"
+#   - Base64: "base64://LS0tLS1CRUdJTi..." (useful for CI/CD, K8s secrets)
 #   - OS Keychain: "keychain://tunnel-server/cert" (macOS Keychain, Windows Credential Manager, Linux Secret Service)
 #   - 1Password CLI: "op://vault/item/field" (requires 'op' CLI installed and authenticated)
 #   - Environment variable: "env://TUNNEL_SERVER_CERT"

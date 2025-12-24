@@ -34,14 +34,14 @@ services:
 
       # Secrets - use Docker secrets or mount files in production
       # Option 1: File paths (mount certificates as volumes)
-      SIPHON_CERT_FILE: "/app/certs/server.crt"
-      SIPHON_KEY_FILE: "/app/certs/server.key"
-      SIPHON_CA_CERT_FILE: "/app/certs/ca.crt"
+      SIPHON_CERT: "file:///app/certs/server.crt"
+      SIPHON_KEY: "file:///app/certs/server.key"
+      SIPHON_CA_CERT: "file:///app/certs/ca.crt"
 
-      # Option 2: Direct PEM content (use with Docker secrets)
-      # SIPHON_CERT: ${SERVER_CERT}
-      # SIPHON_KEY: ${SERVER_KEY}
-      # SIPHON_CA_CERT: ${CA_CERT}
+      # Option 2: Base64-encoded (use with K8s secrets or CI/CD)
+      # SIPHON_CERT: "base64://${SERVER_CERT_B64}"
+      # SIPHON_KEY: "base64://${SERVER_KEY_B64}"
+      # SIPHON_CA_CERT: "base64://${CA_CERT_B64}"
 
       # Cloudflare API token (required)
       SIPHON_CLOUDFLARE_API_TOKEN: ${CLOUDFLARE_API_TOKEN}

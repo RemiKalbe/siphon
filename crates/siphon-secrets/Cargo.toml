@@ -14,12 +14,16 @@ serde = { workspace = true }
 # OS Keychain support (macOS Keychain, Windows Credential Manager, Linux Secret Service)
 keyring = { version = "3", optional = true }
 
+# Base64 decoding support
+base64 = { version = "0.22", optional = true }
+
 [dev-dependencies]
 tempfile = "3"
 
 [features]
-default = ["keychain", "onepassword", "env", "file"]
+default = ["keychain", "onepassword", "env", "file", "base64"]
 keychain = ["dep:keyring"]
 onepassword = []
 env = []
 file = []
+base64 = ["dep:base64"]
