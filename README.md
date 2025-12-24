@@ -111,25 +111,6 @@ openssl x509 -req -days 365 -in client.csr -CA ca.crt -CAkey ca.key \
   -CAcreateserial -out client.crt
 ```
 
-### Using step-ca (recommended)
-
-[step-ca](https://smallstep.com/docs/step-ca/) provides a simpler workflow:
-
-```bash
-# Install step CLI
-brew install step  # macOS
-# or: https://smallstep.com/docs/step-cli/installation/
-
-# Initialize a CA
-step ca init --name "Siphon CA" --provisioner admin
-
-# Issue server certificate
-step ca certificate tunnel.example.com server.crt server.key
-
-# Issue client certificate
-step ca certificate client1 client.crt client.key
-```
-
 ## Configuration
 
 ### Client
