@@ -1823,6 +1823,7 @@ name = "siphon-tui"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "base64",
  "chrono",
  "crossterm",
  "dirs 5.0.1",

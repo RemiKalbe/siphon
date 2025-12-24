@@ -219,25 +219,28 @@ impl SetupWizard {
         self.print_success(&mut stdout, &format!("CA certificate: {}", ca_path))?;
         println!();
 
-        // Store in keychain
-        self.print_action(&mut stdout, "Storing credentials in OS keychain...")?;
-        if let Err(e) = self.store_credentials(&cert_pem, &key_pem, &ca_pem) {
-            self.print_error(&mut stdout, &format!("Failed to store credentials: {}", e))?;
-            return Ok(None);
-        }
+        // Try keychain first, fall back to base64 in config
+        self.print_action(&mut stdout, "Storing credentials...")?;
+
+        let keychain_works = self.try_keychain_storage(&cert_pem, &key_pem, &ca_pem);
+
         self.clear_prompt_lines(&mut stdout, 1)?;
-        self.print_success(&mut stdout, "Credentials stored in keychain")?;
 
-        // Verify keychain storage worked
-        if let Err(e) = siphon_secrets::keychain::resolve("siphon", "cert") {
-            self.print_error(&mut stdout, &format!("Keychain verification failed: {}", e))?;
-            return Ok(None);
+        if keychain_works {
+            // Use keychain references
+            self.config.cert = "keychain://siphon/cert".to_string();
+            self.config.key = "keychain://siphon/key".to_string();
+            self.config.ca_cert = "keychain://siphon/ca".to_string();
+            self.print_success(&mut stdout, "Credentials stored in OS keychain")?;
+        } else {
+            // Fall back to base64 in config
+            use base64::Engine;
+            let engine = base64::engine::general_purpose::STANDARD;
+            self.config.cert = format!("base64://{}", engine.encode(&cert_pem));
+            self.config.key = format!("base64://{}", engine.encode(&key_pem));
+            self.config.ca_cert = format!("base64://{}", engine.encode(&ca_pem));
+            self.print_success(&mut stdout, "Credentials will be stored in config file")?;
         }
-
-        // Update config with keychain references
-        self.config.cert = "keychain://siphon/cert".to_string();
-        self.config.key = "keychain://siphon/key".to_string();
-        self.config.ca_cert = "keychain://siphon/ca".to_string();
 
         // Save config
         let config_path = SiphonConfig::default_path();
@@ -432,11 +435,21 @@ impl SetupWizard {
         }
     }
 
-    fn store_credentials(&self, cert_pem: &str, key_pem: &str, ca_pem: &str) -> anyhow::Result<()> {
-        siphon_secrets::keychain::store("siphon", "cert", cert_pem)?;
-        siphon_secrets::keychain::store("siphon", "key", key_pem)?;
-        siphon_secrets::keychain::store("siphon", "ca", ca_pem)?;
-        Ok(())
+    /// Try to store credentials in keychain and verify they can be read back
+    fn try_keychain_storage(&self, cert_pem: &str, key_pem: &str, ca_pem: &str) -> bool {
+        // Try to store
+        if siphon_secrets::keychain::store("siphon", "cert", cert_pem).is_err() {
+            return false;
+        }
+        if siphon_secrets::keychain::store("siphon", "key", key_pem).is_err() {
+            return false;
+        }
+        if siphon_secrets::keychain::store("siphon", "ca", ca_pem).is_err() {
+            return false;
+        }
+
+        // Verify we can read them back
+        siphon_secrets::keychain::resolve("siphon", "cert").is_ok()
     }
 
     fn load_and_validate_cert(&self, path: &str, name: &str) -> anyhow::Result<String> {
