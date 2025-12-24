@@ -60,6 +60,8 @@ export SIPHON_CA_CERT_FILE="/path/to/ca.crt"
 export SIPHON_CLOUDFLARE_API_TOKEN="your-token"
 export SIPHON_CLOUDFLARE_ZONE_ID="your-zone-id"
 # SIPHON_SERVER_IP is optional - auto-detected if not set
+# Note: Some cloud providers use different IPs for inbound vs outbound traffic.
+# If auto-detection fails, set this to your server's public inbound IP.
 
 siphon-server
 ```
