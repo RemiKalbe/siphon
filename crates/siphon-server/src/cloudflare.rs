@@ -2,14 +2,14 @@ use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
-use crate::config::ResolvedCloudflareConfig;
+use crate::config::{DnsTarget, ResolvedCloudflareConfig};
 
 /// Cloudflare API client for DNS management
 pub struct CloudflareClient {
     client: Client,
     api_token: String,
     zone_id: String,
-    server_ip: String,
+    dns_target: DnsTarget,
     base_domain: String,
 }
 
@@ -60,12 +60,12 @@ impl CloudflareClient {
             client: Client::new(),
             api_token: config.api_token.clone(),
             zone_id: config.zone_id.clone(),
-            server_ip: config.server_ip.clone(),
+            dns_target: config.dns_target.clone(),
             base_domain: base_domain.to_string(),
         }
     }
 
-    /// Create a DNS A record for a subdomain
+    /// Create a DNS record for a subdomain (A record for IP, CNAME for hostname)
     ///
     /// # Arguments
     /// * `subdomain` - The subdomain to create (e.g., "myapp")
@@ -80,10 +80,16 @@ impl CloudflareClient {
     ) -> Result<String, CloudflareError> {
         let full_name = format!("{}.{}", subdomain, self.base_domain);
 
+        let (record_type, content) = match &self.dns_target {
+            DnsTarget::Ip(ip) => ("A", ip.clone()),
+            DnsTarget::Cname(hostname) => ("CNAME", hostname.clone()),
+        };
+
         tracing::info!(
-            "Creating DNS record: {} -> {} (proxied: {})",
+            "Creating DNS {} record: {} -> {} (proxied: {})",
+            record_type,
             full_name,
-            self.server_ip,
+            content,
             proxied
         );
 
@@ -95,9 +101,9 @@ impl CloudflareClient {
             ))
             .bearer_auth(&self.api_token)
             .json(&CreateDnsRecord {
-                record_type: "A".to_string(),
+                record_type: record_type.to_string(),
                 name: full_name.clone(),
-                content: self.server_ip.clone(),
+                content,
                 ttl: 60, // Short TTL for dynamic records
                 proxied,
             })

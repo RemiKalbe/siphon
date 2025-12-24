@@ -67,10 +67,14 @@ export SIPHON_CA_CERT="file:///path/to/ca.crt"
 # Or: op://vault/item/field (1Password CLI)
 # Or: keychain://service/key (OS keychain)
 
-# SIPHON_SERVER_IP is optional - auto-detected if not set
-# Warning: Some cloud providers use different IPs for inbound vs outbound traffic.
-# Auto-detection uses outbound requests, so it may set the wrong IP silently.
-# If tunnels don't work, explicitly set this to your server's public inbound IP.
+# DNS target (optional - auto-detects IP if neither is set)
+# For VPS with static IP:
+#   export SIPHON_SERVER_IP="1.2.3.4"
+# For platforms like Railway/Render/Fly.io that provide hostnames:
+#   export SIPHON_SERVER_CNAME="myapp.up.railway.app"
+#
+# Note: Auto-detection uses outbound requests, which may return the wrong IP
+# on some cloud providers. If tunnels don't work, set one of these explicitly.
 
 siphon-server
 ```
