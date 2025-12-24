@@ -37,3 +37,4 @@ anyhow = { workspace = true }
 dashmap = { workspace = true }
 bytes = { workspace = true }
 parking_lot = { workspace = true }
+ureq = { version = "2", features = ["tls"] }

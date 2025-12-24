@@ -55,7 +55,7 @@ EXPOSE 4443 8080
 #   SIPHON_CA_CERT or SIPHON_CA_CERT_FILE  - CA certificate (PEM content or file path)
 #   SIPHON_CLOUDFLARE_API_TOKEN - Cloudflare API token
 #   SIPHON_CLOUDFLARE_ZONE_ID   - Cloudflare zone ID
-#   SIPHON_CLOUDFLARE_SERVER_IP - Server's public IP for DNS records
+#   SIPHON_SERVER_IP            - Server's public IP for DNS records (auto-detected if not set)
 #
 # Optional (with defaults):
 #   SIPHON_CONTROL_PORT         - Control plane port (default: 4443)

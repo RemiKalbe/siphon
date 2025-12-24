@@ -30,7 +30,7 @@ services:
       # Required configuration
       SIPHON_BASE_DOMAIN: "tunnel.example.com"
       SIPHON_CLOUDFLARE_ZONE_ID: "your-zone-id"
-      SIPHON_CLOUDFLARE_SERVER_IP: "your-server-public-ip"
+      # SIPHON_SERVER_IP: "your-server-public-ip"  # Optional, auto-detected if not set
 
       # Secrets - use Docker secrets or mount files in production
       # Option 1: File paths (mount certificates as volumes)

@@ -91,6 +91,37 @@ fn get_env_u16(name: &str) -> Option<u16> {
     get_env(name).and_then(|v| v.parse().ok())
 }
 
+/// Auto-detect public IP address using external services
+fn detect_public_ip() -> anyhow::Result<String> {
+    // Try multiple services in case one is down
+    let services = [
+        "https://api.ipify.org",
+        "https://ifconfig.me/ip",
+        "https://icanhazip.com",
+    ];
+
+    for service in services {
+        match ureq::get(service).call() {
+            Ok(response) => {
+                if let Ok(ip) = response.into_string() {
+                    let ip = ip.trim().to_string();
+                    if !ip.is_empty() {
+                        tracing::info!("Detected public IP: {}", ip);
+                        return Ok(ip);
+                    }
+                }
+            }
+            Err(e) => {
+                tracing::debug!("Failed to get IP from {}: {}", service, e);
+            }
+        }
+    }
+
+    anyhow::bail!(
+        "Could not auto-detect server IP. Set SIPHON_SERVER_IP or cloudflare.server_ip in config"
+    )
+}
+
 impl ServerConfig {
     /// Load configuration from a TOML file (optional)
     pub fn load(path: &str) -> Self {
@@ -173,12 +204,14 @@ impl ServerConfig {
                 "Cloudflare zone ID required. Set SIPHON_CLOUDFLARE_ZONE_ID or cloudflare.zone_id in config"
             ))?;
 
-        // Cloudflare server IP: ENV > config > required
-        let cf_server_ip = get_env("CLOUDFLARE_SERVER_IP")
+        // Server IP: ENV > config > auto-detect
+        let cf_server_ip = get_env("SERVER_IP")
             .or(cf_config.server_ip)
-            .ok_or_else(|| anyhow::anyhow!(
-                "Server IP required. Set SIPHON_CLOUDFLARE_SERVER_IP or cloudflare.server_ip in config"
-            ))?;
+            .map(Ok)
+            .unwrap_or_else(|| {
+                tracing::info!("Server IP not configured, auto-detecting...");
+                detect_public_ip()
+            })?;
 
         // TCP port range: ENV > config > default 30000-40000
         let tcp_port_start = get_env_u16("TCP_PORT_START")
