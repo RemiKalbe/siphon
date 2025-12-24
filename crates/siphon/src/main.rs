@@ -84,36 +84,31 @@ struct ResolvedConfig {
 }
 
 impl ResolvedConfig {
-    /// Resolve configuration from CLI args, falling back to config file
+    /// Resolve configuration from CLI args, falling back to config file for connection settings
     fn resolve(cli: &Cli) -> Result<Self> {
-        // Try to load config file
+        // Try to load config file for connection settings
         let config_file = SiphonConfig::load_default().ok();
 
-        // Server address
+        // Server address (from CLI or config)
         let server_addr = cli
             .server
             .clone()
             .or_else(|| config_file.as_ref().map(|c| c.server_addr.clone()))
             .context("Server address required. Use --server or run 'siphon setup'")?;
 
-        // Local address
+        // Local address (CLI only - required at runtime)
         let local_addr = cli
             .local
             .clone()
-            .or_else(|| config_file.as_ref().map(|c| c.local_addr.clone()))
-            .context("Local address required. Use --local or run 'siphon setup'")?;
+            .context("Local address required. Use --local (e.g., --local 127.0.0.1:3000)")?;
 
-        // Subdomain
-        let subdomain = cli
-            .subdomain
-            .clone()
-            .or_else(|| config_file.as_ref().and_then(|c| c.subdomain.clone()));
+        // Subdomain (CLI only - optional)
+        let subdomain = cli.subdomain.clone();
 
-        // Tunnel type
+        // Tunnel type (CLI only - defaults to http)
         let tunnel_type_str = cli
             .tunnel_type
             .clone()
-            .or_else(|| config_file.as_ref().map(|c| c.tunnel_type.clone()))
             .unwrap_or_else(|| "http".to_string());
 
         let tunnel_type = match tunnel_type_str.as_str() {
@@ -125,7 +120,7 @@ impl ResolvedConfig {
             ),
         };
 
-        // Certificates
+        // Certificates (from CLI or config)
         let cert = cli
             .cert
             .clone()

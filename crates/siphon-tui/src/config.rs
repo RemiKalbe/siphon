@@ -1,26 +1,18 @@
 //! Siphon configuration management
 //!
 //! Handles loading and saving configuration to `~/.config/siphon/config.toml`
+//!
+//! Note: Only connection settings are stored in config. Runtime options like
+//! local address, subdomain, and tunnel type are provided via CLI arguments.
 
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
-/// Siphon client configuration
+/// Siphon client configuration (connection settings only)
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SiphonConfig {
     /// Tunnel server address (host:port)
     pub server_addr: String,
-
-    /// Local address to forward to (e.g., 127.0.0.1:3000)
-    pub local_addr: String,
-
-    /// Requested subdomain (None = auto-generate)
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub subdomain: Option<String>,
-
-    /// Tunnel type: "http" or "tcp"
-    #[serde(default = "default_tunnel_type")]
-    pub tunnel_type: String,
 
     /// Client certificate reference (keychain://siphon/cert, file path, etc.)
     pub cert: String,
@@ -32,17 +24,10 @@ pub struct SiphonConfig {
     pub ca_cert: String,
 }
 
-fn default_tunnel_type() -> String {
-    "http".to_string()
-}
-
 impl Default for SiphonConfig {
     fn default() -> Self {
         Self {
             server_addr: String::new(),
-            local_addr: "127.0.0.1:3000".to_string(),
-            subdomain: None,
-            tunnel_type: default_tunnel_type(),
             cert: String::new(),
             key: String::new(),
             ca_cert: String::new(),
@@ -116,10 +101,6 @@ impl SiphonConfig {
             errors.push("Server address is required".to_string());
         }
 
-        if self.local_addr.is_empty() {
-            errors.push("Local address is required".to_string());
-        }
-
         if self.cert.is_empty() {
             errors.push("Certificate is required".to_string());
         }
@@ -130,13 +111,6 @@ impl SiphonConfig {
 
         if self.ca_cert.is_empty() {
             errors.push("CA certificate is required".to_string());
-        }
-
-        if !["http", "tcp"].contains(&self.tunnel_type.as_str()) {
-            errors.push(format!(
-                "Invalid tunnel type '{}'. Must be 'http' or 'tcp'",
-                self.tunnel_type
-            ));
         }
 
         if errors.is_empty() {
@@ -154,8 +128,8 @@ mod tests {
     #[test]
     fn test_default_config() {
         let config = SiphonConfig::default();
-        assert_eq!(config.tunnel_type, "http");
-        assert_eq!(config.local_addr, "127.0.0.1:3000");
+        assert!(config.server_addr.is_empty());
+        assert!(config.cert.is_empty());
     }
 
     #[test]
@@ -172,9 +146,6 @@ mod tests {
     fn test_config_roundtrip() {
         let config = SiphonConfig {
             server_addr: "tunnel.example.com:4443".to_string(),
-            local_addr: "127.0.0.1:8080".to_string(),
-            subdomain: Some("myapp".to_string()),
-            tunnel_type: "http".to_string(),
             cert: "keychain://siphon/cert".to_string(),
             key: "keychain://siphon/key".to_string(),
             ca_cert: "keychain://siphon/ca".to_string(),
@@ -187,6 +158,6 @@ mod tests {
 
         let loaded = SiphonConfig::load(&path).unwrap();
         assert_eq!(loaded.server_addr, config.server_addr);
-        assert_eq!(loaded.subdomain, config.subdomain);
+        assert_eq!(loaded.cert, config.cert);
     }
 }
