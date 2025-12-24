@@ -93,7 +93,13 @@ fn get_env_u16(name: &str) -> Option<u16> {
 
 /// Auto-detect public IP address using external services
 fn detect_public_ip() -> anyhow::Result<String> {
-    // Try multiple services in case one is down
+    // Try Cloudflare first (most reliable, returns structured data)
+    if let Some(ip) = detect_ip_cloudflare() {
+        tracing::info!("Detected public IP: {}", ip);
+        return Ok(ip);
+    }
+
+    // Fallback to simple IP echo services
     let services = [
         "https://api.ipify.org",
         "https://ifconfig.me/ip",
@@ -120,6 +126,27 @@ fn detect_public_ip() -> anyhow::Result<String> {
     anyhow::bail!(
         "Could not auto-detect server IP. Set SIPHON_SERVER_IP or cloudflare.server_ip in config"
     )
+}
+
+/// Detect IP using Cloudflare's trace endpoint
+fn detect_ip_cloudflare() -> Option<String> {
+    match ureq::get("https://cloudflare.com/cdn-cgi/trace").call() {
+        Ok(response) => {
+            if let Ok(body) = response.into_string() {
+                // Parse "ip=x.x.x.x" from the response
+                for line in body.lines() {
+                    if let Some(ip) = line.strip_prefix("ip=") {
+                        return Some(ip.to_string());
+                    }
+                }
+            }
+            None
+        }
+        Err(e) => {
+            tracing::debug!("Failed to get IP from Cloudflare trace: {}", e);
+            None
+        }
+    }
 }
 
 impl ServerConfig {
