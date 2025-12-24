@@ -46,6 +46,8 @@ siphon --server tunnel.example.com:4443 \
        --cert ./client.crt \
        --key ./client.key \
        --ca ./ca.crt
+# Certificates support multiple formats:
+# file path, file://, base64://, op:// (1Password), keychain://
 ```
 
 ### Server Setup
