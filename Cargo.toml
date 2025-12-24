@@ -52,8 +52,8 @@ chrono = "0.4"
 dirs = "5"
 shellexpand = "3"
 
-# Workspace crates
-siphon-protocol = { path = "crates/siphon-protocol" }
-siphon-common = { path = "crates/siphon-common" }
-siphon-secrets = { path = "crates/siphon-secrets" }
-siphon-tui = { path = "crates/siphon-tui" }
+# Workspace crates (version required for crates.io publishing)
+siphon-protocol = { path = "crates/siphon-protocol", version = "0.1.0" }
+siphon-common = { path = "crates/siphon-common", version = "0.1.0" }
+siphon-secrets = { path = "crates/siphon-secrets", version = "0.1.0" }
+siphon-tui = { path = "crates/siphon-tui", version = "0.1.0" }
