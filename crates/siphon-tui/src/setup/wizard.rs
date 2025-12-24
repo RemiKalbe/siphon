@@ -221,15 +221,17 @@ impl SetupWizard {
 
         // Store in keychain
         self.print_action(&mut stdout, "Storing credentials in OS keychain...")?;
-        match self.store_credentials(&cert_pem, &key_pem, &ca_pem) {
-            Ok(()) => {
-                self.clear_prompt_lines(&mut stdout, 1)?;
-                self.print_success(&mut stdout, "Credentials stored in keychain")?;
-            }
-            Err(e) => {
-                self.print_error(&mut stdout, &format!("Failed to store credentials: {}", e))?;
-                return Ok(None);
-            }
+        if let Err(e) = self.store_credentials(&cert_pem, &key_pem, &ca_pem) {
+            self.print_error(&mut stdout, &format!("Failed to store credentials: {}", e))?;
+            return Ok(None);
+        }
+        self.clear_prompt_lines(&mut stdout, 1)?;
+        self.print_success(&mut stdout, "Credentials stored in keychain")?;
+
+        // Verify keychain storage worked
+        if let Err(e) = siphon_secrets::keychain::resolve("siphon", "cert") {
+            self.print_error(&mut stdout, &format!("Keychain verification failed: {}", e))?;
+            return Ok(None);
         }
 
         // Update config with keychain references
@@ -238,17 +240,26 @@ impl SetupWizard {
         self.config.ca_cert = "keychain://siphon/ca".to_string();
 
         // Save config
-        self.print_action(&mut stdout, "Saving configuration...")?;
-        match self.config.save_default() {
-            Ok(()) => {
-                self.clear_prompt_lines(&mut stdout, 1)?;
-                self.print_success(&mut stdout, "Config saved to ~/.config/siphon/config.toml")?;
-            }
-            Err(e) => {
-                self.print_error(&mut stdout, &format!("Failed to save config: {}", e))?;
-                return Ok(None);
-            }
+        let config_path = SiphonConfig::default_path();
+        self.print_action(
+            &mut stdout,
+            &format!("Saving configuration to {:?}...", config_path),
+        )?;
+        if let Err(e) = self.config.save_default() {
+            self.print_error(&mut stdout, &format!("Failed to save config: {}", e))?;
+            return Ok(None);
         }
+        self.clear_prompt_lines(&mut stdout, 1)?;
+
+        // Verify file was created
+        if !config_path.exists() {
+            self.print_error(&mut stdout, "Config file was not created!")?;
+            return Ok(None);
+        }
+        self.print_success(
+            &mut stdout,
+            &format!("Config saved to {}", config_path.display()),
+        )?;
 
         println!();
         self.print_complete(&mut stdout)?;
