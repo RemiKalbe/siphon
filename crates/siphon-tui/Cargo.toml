@@ -3,6 +3,7 @@ name = "siphon-tui"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
+repository.workspace = true
 description = "TUI dashboard and setup wizard for Siphon tunnel client"
 
 [dependencies]

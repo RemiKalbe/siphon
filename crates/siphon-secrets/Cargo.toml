@@ -3,6 +3,7 @@ name = "siphon-secrets"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
+repository.workspace = true
 description = "Secret management with multiple backend support for Siphon"
 
 [dependencies]

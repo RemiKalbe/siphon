@@ -3,6 +3,7 @@ name = "siphon-common"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
+repository.workspace = true
 description = "Shared utilities for Siphon server and client"
 
 [dependencies]
