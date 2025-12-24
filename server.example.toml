@@ -53,6 +53,9 @@ api_token = "env://CLOUDFLARE_API_TOKEN"
 # Found in the Cloudflare dashboard under your domain's Overview page
 zone_id = "your-zone-id"
 
-# Server's public IP (for DNS A records)
-# Optional: auto-detected if not set
+# DNS target for tunnel subdomains (optional - auto-detects IP if neither is set)
+# Use server_ip for VPS with static IP (creates A records):
 # server_ip = "1.2.3.4"
+#
+# Use server_cname for platforms like Railway/Render/Fly.io (creates CNAME records):
+# server_cname = "myapp.up.railway.app"

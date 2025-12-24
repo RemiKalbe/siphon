@@ -62,8 +62,11 @@ pub struct CloudflareConfig {
     /// Zone ID for the domain
     pub zone_id: Option<String>,
 
-    /// Server's public IP (for A records)
+    /// Server's public IP (for A records) - mutually exclusive with server_cname
     pub server_ip: Option<String>,
+
+    /// Server's CNAME target (for CNAME records) - use for platforms like Railway
+    pub server_cname: Option<String>,
 }
 
 /// Resolved server configuration with actual secret values
@@ -83,12 +86,21 @@ pub struct ResolvedServerConfig {
     pub http_key_pem: Option<String>,
 }
 
+/// DNS record target type
+#[derive(Debug, Clone)]
+pub enum DnsTarget {
+    /// A record pointing to an IP address
+    Ip(String),
+    /// CNAME record pointing to a hostname
+    Cname(String),
+}
+
 /// Resolved Cloudflare configuration with actual secret values
 #[derive(Debug)]
 pub struct ResolvedCloudflareConfig {
     pub api_token: String,
     pub zone_id: String,
-    pub server_ip: String,
+    pub dns_target: DnsTarget,
 }
 
 /// Get environment variable with prefix
@@ -228,14 +240,23 @@ impl ServerConfig {
                 "Cloudflare zone ID required. Set SIPHON_CLOUDFLARE_ZONE_ID or cloudflare.zone_id in config"
             ))?;
 
-        // Server IP: ENV > config > auto-detect
-        let cf_server_ip = get_env("SERVER_IP")
-            .or(cf_config.server_ip)
-            .map(Ok)
-            .unwrap_or_else(|| {
-                tracing::info!("Server IP not configured, auto-detecting...");
-                detect_public_ip()
-            })?;
+        // DNS target: CNAME or IP (mutually exclusive)
+        let cf_server_ip = get_env("SERVER_IP").or(cf_config.server_ip);
+        let cf_server_cname = get_env("SERVER_CNAME").or(cf_config.server_cname);
+
+        let dns_target = match (cf_server_ip, cf_server_cname) {
+            (Some(_), Some(_)) => {
+                anyhow::bail!(
+                    "Cannot set both SIPHON_SERVER_IP and SIPHON_SERVER_CNAME. Use one or the other."
+                )
+            }
+            (Some(ip), None) => DnsTarget::Ip(ip),
+            (None, Some(cname)) => DnsTarget::Cname(cname),
+            (None, None) => {
+                tracing::info!("Server IP/CNAME not configured, auto-detecting IP...");
+                DnsTarget::Ip(detect_public_ip()?)
+            }
+        };
 
         // TCP port range: ENV > config > default 30000-40000
         let tcp_port_start = get_env_u16("TCP_PORT_START")
@@ -318,7 +339,7 @@ impl ServerConfig {
             cloudflare: ResolvedCloudflareConfig {
                 api_token,
                 zone_id: cf_zone_id,
-                server_ip: cf_server_ip,
+                dns_target,
             },
             tcp_port_range: (tcp_port_start, tcp_port_end),
             http_cert_pem,
