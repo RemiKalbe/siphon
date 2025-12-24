@@ -44,6 +44,12 @@ pub struct ServerConfig {
 
     /// TCP port range for TCP tunnels
     pub tcp_port_range: Option<(u16, u16)>,
+
+    /// HTTP plane certificate for TLS (optional - enables HTTPS if set)
+    pub http_cert: Option<String>,
+
+    /// HTTP plane private key for TLS (optional - enables HTTPS if set)
+    pub http_key: Option<String>,
 }
 
 /// Cloudflare API configuration
@@ -71,6 +77,10 @@ pub struct ResolvedServerConfig {
     pub ca_cert_pem: String,
     pub cloudflare: ResolvedCloudflareConfig,
     pub tcp_port_range: (u16, u16),
+    /// HTTP plane TLS certificate (if HTTPS is enabled)
+    pub http_cert_pem: Option<String>,
+    /// HTTP plane TLS private key (if HTTPS is enabled)
+    pub http_key_pem: Option<String>,
 }
 
 /// Resolved Cloudflare configuration with actual secret values
@@ -264,6 +274,38 @@ impl ServerConfig {
             .resolve_trimmed(&api_token_uri)
             .map_err(|e| anyhow::anyhow!("Failed to resolve Cloudflare API token: {}", e))?;
 
+        // HTTP plane TLS (optional)
+        let http_cert_source = get_env("HTTP_CERT").or(self.http_cert);
+        let http_key_source = get_env("HTTP_KEY").or(self.http_key);
+
+        let (http_cert_pem, http_key_pem) = match (http_cert_source, http_key_source) {
+            (Some(cert_src), Some(key_src)) => {
+                let cert_uri: SecretUri = cert_src
+                    .parse()
+                    .map_err(|e| anyhow::anyhow!("Invalid HTTP certificate source: {}", e))?;
+                let key_uri: SecretUri = key_src
+                    .parse()
+                    .map_err(|e| anyhow::anyhow!("Invalid HTTP key source: {}", e))?;
+
+                let cert = resolver
+                    .resolve_trimmed(&cert_uri)
+                    .map_err(|e| anyhow::anyhow!("Failed to resolve HTTP certificate: {}", e))?;
+                let key = resolver
+                    .resolve_trimmed(&key_uri)
+                    .map_err(|e| anyhow::anyhow!("Failed to resolve HTTP key: {}", e))?;
+
+                tracing::info!("HTTP plane TLS enabled");
+                (Some(cert), Some(key))
+            }
+            (Some(_), None) => {
+                anyhow::bail!("SIPHON_HTTP_CERT is set but SIPHON_HTTP_KEY is missing")
+            }
+            (None, Some(_)) => {
+                anyhow::bail!("SIPHON_HTTP_KEY is set but SIPHON_HTTP_CERT is missing")
+            }
+            (None, None) => (None, None),
+        };
+
         tracing::info!("All secrets resolved successfully");
 
         Ok(ResolvedServerConfig {
@@ -279,6 +321,8 @@ impl ServerConfig {
                 server_ip: cf_server_ip,
             },
             tcp_port_range: (tcp_port_start, tcp_port_end),
+            http_cert_pem,
+            http_key_pem,
         })
     }
 

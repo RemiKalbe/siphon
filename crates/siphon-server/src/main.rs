@@ -99,10 +99,21 @@ async fn main() -> Result<()> {
         tcp_registry,
     );
 
+    // Load HTTP plane TLS config if provided (for Cloudflare Full Strict mode)
+    let http_tls_acceptor =
+        if let (Some(cert), Some(key)) = (&config.http_cert_pem, &config.http_key_pem) {
+            let http_tls_config = siphon_common::load_server_config_no_client_auth(cert, key)
+                .context("Failed to load HTTP plane TLS configuration")?;
+            Some(TlsAcceptor::from(Arc::new(http_tls_config)))
+        } else {
+            None
+        };
+
     let http_plane = HttpPlane::new(
         router.clone(),
         config.base_domain.clone(),
         response_registry,
+        http_tls_acceptor,
     );
 
     // Start servers

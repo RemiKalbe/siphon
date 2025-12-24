@@ -32,6 +32,12 @@ ca_cert = "/etc/tunnel/ca.crt"
 # TCP port range for TCP tunnels (optional)
 tcp_port_range = [30000, 40000]
 
+# HTTP plane TLS (optional - enables HTTPS for Cloudflare Full Strict mode)
+# If not set, HTTP plane accepts plain HTTP (suitable for Cloudflare Flexible/Full mode)
+# http_cert = "/etc/tunnel/origin.crt"
+# http_key = "/etc/tunnel/origin.key"
+# You can use a Cloudflare Origin CA certificate (free, trusted only by Cloudflare)
+
 [cloudflare]
 # API token with DNS edit permissions
 # Create at: https://dash.cloudflare.com/profile/api-tokens
