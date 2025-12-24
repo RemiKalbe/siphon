@@ -188,33 +188,20 @@ impl ServerConfig {
             anyhow::anyhow!("Base domain required. Set SIPHON_BASE_DOMAIN or base_domain in config")
         })?;
 
-        // Certificate: ENV > ENV_FILE > config > required
-        let cert_source = get_env("CERT")
-            .or_else(|| get_env("CERT_FILE").map(|f| format!("file://{}", f)))
-            .or(self.cert)
-            .ok_or_else(|| {
-                anyhow::anyhow!(
-                    "Certificate required. Set SIPHON_CERT, SIPHON_CERT_FILE, or cert in config"
-                )
-            })?;
+        // Certificate: ENV > config > required
+        let cert_source = get_env("CERT").or(self.cert).ok_or_else(|| {
+            anyhow::anyhow!("Certificate required. Set SIPHON_CERT or cert in config")
+        })?;
 
-        // Key: ENV > ENV_FILE > config > required
-        let key_source = get_env("KEY")
-            .or_else(|| get_env("KEY_FILE").map(|f| format!("file://{}", f)))
-            .or(self.key)
-            .ok_or_else(|| {
-                anyhow::anyhow!(
-                    "Private key required. Set SIPHON_KEY, SIPHON_KEY_FILE, or key in config"
-                )
-            })?;
+        // Key: ENV > config > required
+        let key_source = get_env("KEY").or(self.key).ok_or_else(|| {
+            anyhow::anyhow!("Private key required. Set SIPHON_KEY or key in config")
+        })?;
 
-        // CA cert: ENV > ENV_FILE > config > required
-        let ca_cert_source = get_env("CA_CERT")
-            .or_else(|| get_env("CA_CERT_FILE").map(|f| format!("file://{}", f)))
-            .or(self.ca_cert)
-            .ok_or_else(|| anyhow::anyhow!(
-                "CA certificate required. Set SIPHON_CA_CERT, SIPHON_CA_CERT_FILE, or ca_cert in config"
-            ))?;
+        // CA cert: ENV > config > required
+        let ca_cert_source = get_env("CA_CERT").or(self.ca_cert).ok_or_else(|| {
+            anyhow::anyhow!("CA certificate required. Set SIPHON_CA_CERT or ca_cert in config")
+        })?;
 
         // Cloudflare API token: ENV > config > required
         let cf_config = self.cloudflare.unwrap_or_default();

@@ -54,14 +54,21 @@ Configure via environment variables:
 
 ```bash
 export SIPHON_BASE_DOMAIN="tunnel.example.com"
-export SIPHON_CERT_FILE="/path/to/server.crt"
-export SIPHON_KEY_FILE="/path/to/server.key"
-export SIPHON_CA_CERT_FILE="/path/to/ca.crt"
 export SIPHON_CLOUDFLARE_API_TOKEN="your-token"
 export SIPHON_CLOUDFLARE_ZONE_ID="your-zone-id"
+
+# Certificates - use file:// URIs or base64://
+export SIPHON_CERT="file:///path/to/server.crt"
+export SIPHON_KEY="file:///path/to/server.key"
+export SIPHON_CA_CERT="file:///path/to/ca.crt"
+
+# Or use base64 for CI/CD environments:
+# export SIPHON_CERT="base64://LS0tLS1CRUdJTi..."
+
 # SIPHON_SERVER_IP is optional - auto-detected if not set
-# Note: Some cloud providers use different IPs for inbound vs outbound traffic.
-# If auto-detection fails, set this to your server's public inbound IP.
+# Warning: Some cloud providers use different IPs for inbound vs outbound traffic.
+# Auto-detection uses outbound requests, so it may set the wrong IP silently.
+# If tunnels don't work, explicitly set this to your server's public inbound IP.
 
 siphon-server
 ```

@@ -49,6 +49,12 @@ impl SecretResolver {
 
             #[cfg(not(feature = "onepassword"))]
             SecretUri::OnePassword { .. } => Err(SecretError::disabled("1password")),
+
+            #[cfg(feature = "base64")]
+            SecretUri::Base64 { data } => crate::backends::base64::resolve(data),
+
+            #[cfg(not(feature = "base64"))]
+            SecretUri::Base64 { .. } => Err(SecretError::disabled("base64")),
         }
     }
 

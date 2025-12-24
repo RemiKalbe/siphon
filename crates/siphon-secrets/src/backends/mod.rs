@@ -1,5 +1,8 @@
 //! Secret backend implementations
 
+#[cfg(feature = "base64")]
+pub mod base64;
+
 #[cfg(feature = "env")]
 pub mod env;
 

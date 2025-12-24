@@ -1685,6 +1685,7 @@ dependencies = [
 name = "siphon-secrets"
 version = "0.1.0"
 dependencies = [
+ "base64",
  "keyring",
  "serde",
  "tempfile",

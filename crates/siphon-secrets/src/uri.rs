@@ -33,6 +33,9 @@ pub enum SecretUri {
 
     /// File path: `file:///path/to/file` or just a path
     File { path: PathBuf },
+
+    /// Base64 encoded value: `base64://...`
+    Base64 { data: String },
 }
 
 impl SecretUri {
@@ -49,6 +52,7 @@ impl SecretUri {
             SecretUri::OnePassword { .. } => "1password",
             SecretUri::Env { .. } => "env",
             SecretUri::File { .. } => "file",
+            SecretUri::Base64 { .. } => "base64",
         }
     }
 }
@@ -65,6 +69,8 @@ impl FromStr for SecretUri {
             parse_env_uri(s)
         } else if s.starts_with("file://") {
             parse_file_uri(s)
+        } else if s.starts_with("base64://") {
+            parse_base64_uri(s)
         } else if looks_like_file_path(s) {
             // Treat bare paths as file URIs for convenience
             Ok(SecretUri::File {
@@ -140,6 +146,22 @@ fn parse_file_uri(s: &str) -> Result<SecretUri, SecretError> {
 
     Ok(SecretUri::File {
         path: PathBuf::from(path),
+    })
+}
+
+/// Parse `base64://...`
+fn parse_base64_uri(s: &str) -> Result<SecretUri, SecretError> {
+    let data = s.strip_prefix("base64://").unwrap();
+
+    if data.is_empty() {
+        return Err(SecretError::invalid_uri(
+            s,
+            "base64 URI must contain encoded data",
+        ));
+    }
+
+    Ok(SecretUri::Base64 {
+        data: data.to_string(),
     })
 }
 
@@ -249,6 +271,23 @@ mod tests {
     #[test]
     fn test_invalid_env_uri() {
         let result: Result<SecretUri, _> = "env://".parse();
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_parse_base64_uri() {
+        let uri: SecretUri = "base64://SGVsbG8gV29ybGQ=".parse().unwrap();
+        assert_eq!(
+            uri,
+            SecretUri::Base64 {
+                data: "SGVsbG8gV29ybGQ=".to_string(),
+            }
+        );
+    }
+
+    #[test]
+    fn test_invalid_base64_uri() {
+        let result: Result<SecretUri, _> = "base64://".parse();
         assert!(result.is_err());
     }
 }
