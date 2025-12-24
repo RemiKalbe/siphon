@@ -97,11 +97,7 @@ impl HttpForwarder {
 
         let resp_body = response.bytes().await?.to_vec();
 
-        tracing::debug!(
-            "Response: {} ({} bytes)",
-            status,
-            resp_body.len()
-        );
+        tracing::debug!("Response: {} ({} bytes)", status, resp_body.len());
 
         Ok((status, resp_headers, resp_body))
     }

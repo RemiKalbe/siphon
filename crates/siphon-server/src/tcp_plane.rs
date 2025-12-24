@@ -35,10 +35,7 @@ impl TcpPlane {
     }
 
     /// Allocate a port and start listening for TCP connections
-    pub async fn allocate_and_listen(
-        self: Arc<Self>,
-        subdomain: String,
-    ) -> Result<u16> {
+    pub async fn allocate_and_listen(self: Arc<Self>, subdomain: String) -> Result<u16> {
         let port = self
             .port_allocator
             .allocate()
@@ -47,7 +44,11 @@ impl TcpPlane {
         let addr: SocketAddr = format!("0.0.0.0:{}", port).parse()?;
         let listener = TcpListener::bind(addr).await?;
 
-        tracing::info!("TCP plane listening on {} for subdomain {}", addr, subdomain);
+        tracing::info!(
+            "TCP plane listening on {} for subdomain {}",
+            addr,
+            subdomain
+        );
 
         let this = self.clone();
         let subdomain_clone = subdomain.clone();
@@ -115,7 +116,10 @@ impl TcpPlane {
         );
 
         // Send TcpConnect to client
-        if let Err(e) = tunnel_sender.send(ServerMessage::TcpConnect { stream_id }).await {
+        if let Err(e) = tunnel_sender
+            .send(ServerMessage::TcpConnect { stream_id })
+            .await
+        {
             tracing::error!("Failed to send TcpConnect: {}", e);
             self.tcp_registry.remove(&stream_id);
             return Ok(());

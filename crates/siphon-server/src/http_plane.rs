@@ -64,10 +64,7 @@ impl HttpPlane {
                     async move { this.handle_request(req).await }
                 });
 
-                if let Err(e) = http1::Builder::new()
-                    .serve_connection(io, service)
-                    .await
-                {
+                if let Err(e) = http1::Builder::new().serve_connection(io, service).await {
                     tracing::error!("HTTP connection error from {}: {}", peer_addr, e);
                 }
             });

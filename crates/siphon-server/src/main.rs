@@ -19,9 +19,7 @@ use config::ServerConfig;
 use control_plane::ControlPlane;
 use http_plane::HttpPlane;
 use router::Router;
-use state::{
-    new_response_registry, new_tcp_connection_registry, PortAllocator, StreamIdGenerator,
-};
+use state::{new_response_registry, new_tcp_connection_registry, PortAllocator, StreamIdGenerator};
 use tcp_plane::TcpPlane;
 
 /// Tunnel server - accepts tunnel connections and routes traffic
@@ -68,7 +66,10 @@ async fn main() -> Result<()> {
 
     // Create shared state
     let router = Router::new();
-    let cloudflare = Arc::new(CloudflareClient::new(&config.cloudflare, &config.base_domain));
+    let cloudflare = Arc::new(CloudflareClient::new(
+        &config.cloudflare,
+        &config.base_domain,
+    ));
     let response_registry = new_response_registry();
     let tcp_registry = new_tcp_connection_registry();
     let port_allocator = PortAllocator::new(config.tcp_port_range.0, config.tcp_port_range.1);

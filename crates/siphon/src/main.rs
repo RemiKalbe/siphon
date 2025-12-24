@@ -3,16 +3,15 @@ use std::time::Duration;
 
 use anyhow::{Context, Result};
 use clap::{Parser, Subcommand};
+use siphon_secrets::{SecretResolver, SecretUri};
 use tokio::net::TcpStream;
 use tokio::sync::mpsc;
 use tokio_rustls::rustls::pki_types::ServerName;
 use tokio_rustls::TlsConnector;
 use tracing_subscriber::EnvFilter;
-use siphon_secrets::{SecretResolver, SecretUri};
 
 use siphon_tui::{MetricsCollector, SetupWizard, SiphonConfig, TuiApp};
 
-mod config;
 mod connector;
 mod forwarder;
 mod tcp_forwarder;
@@ -114,7 +113,10 @@ impl ResolvedConfig {
         let tunnel_type = match tunnel_type_str.as_str() {
             "http" => TunnelType::Http,
             "tcp" => TunnelType::Tcp,
-            _ => anyhow::bail!("Invalid tunnel type: {}. Use 'http' or 'tcp'", tunnel_type_str),
+            _ => anyhow::bail!(
+                "Invalid tunnel type: {}. Use 'http' or 'tcp'",
+                tunnel_type_str
+            ),
         };
 
         // Certificates
@@ -162,7 +164,9 @@ async fn main() -> Result<()> {
         Ok(c) => c,
         Err(e) => {
             eprintln!("Configuration error: {}", e);
-            eprintln!("\nRun 'siphon setup' to configure interactively, or provide all required options.");
+            eprintln!(
+                "\nRun 'siphon setup' to configure interactively, or provide all required options."
+            );
             std::process::exit(1);
         }
     };
@@ -204,9 +208,8 @@ async fn main() -> Result<()> {
     }
 
     // Load TLS configuration
-    let tls_config =
-        siphon_common::load_client_config_from_pem(&cert_pem, &key_pem, &ca_pem)
-            .context("Failed to load TLS configuration")?;
+    let tls_config = siphon_common::load_client_config_from_pem(&cert_pem, &key_pem, &ca_pem)
+        .context("Failed to load TLS configuration")?;
 
     let tls_connector = TlsConnector::from(Arc::new(tls_config));
 
@@ -274,11 +277,7 @@ async fn run_cli_mode(
     server_name: ServerName<'static>,
     metrics: MetricsCollector,
 ) -> Result<()> {
-    tracing::info!(
-        "Connecting to {} to expose {}",
-        server_addr,
-        local_addr
-    );
+    tracing::info!("Connecting to {} to expose {}", server_addr, local_addr);
 
     // Reconnection loop
     let mut shutdown = false;

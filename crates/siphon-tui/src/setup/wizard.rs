@@ -50,7 +50,6 @@ pub struct SetupWizard {
 
     // Multiline input state
     multiline_mode: bool,
-    multiline_buffer: Vec<String>,
 }
 
 impl SetupWizard {
@@ -67,7 +66,6 @@ impl SetupWizard {
             error_message: None,
             tunnel_type_index: 0,
             multiline_mode: false,
-            multiline_buffer: Vec::new(),
         }
     }
 
@@ -132,31 +130,43 @@ impl SetupWizard {
         // Main content based on step
         match self.step {
             WizardStep::Welcome => self.render_welcome(frame, chunks[1]),
-            WizardStep::ServerAddress => {
-                self.render_text_input(frame, chunks[1], "Server Address",
-                    "Enter the tunnel server address (e.g., tunnel.example.com:4443)")
-            }
-            WizardStep::LocalAddress => {
-                self.render_text_input(frame, chunks[1], "Local Address",
-                    "Enter the local service address to forward to (e.g., 127.0.0.1:3000)")
-            }
-            WizardStep::Subdomain => {
-                self.render_text_input(frame, chunks[1], "Subdomain (optional)",
-                    "Enter a subdomain or leave blank for auto-generation")
-            }
+            WizardStep::ServerAddress => self.render_text_input(
+                frame,
+                chunks[1],
+                "Server Address",
+                "Enter the tunnel server address (e.g., tunnel.example.com:4443)",
+            ),
+            WizardStep::LocalAddress => self.render_text_input(
+                frame,
+                chunks[1],
+                "Local Address",
+                "Enter the local service address to forward to (e.g., 127.0.0.1:3000)",
+            ),
+            WizardStep::Subdomain => self.render_text_input(
+                frame,
+                chunks[1],
+                "Subdomain (optional)",
+                "Enter a subdomain or leave blank for auto-generation",
+            ),
             WizardStep::TunnelType => self.render_tunnel_type_select(frame, chunks[1]),
-            WizardStep::CertificateInput => {
-                self.render_file_input(frame, chunks[1], "Client Certificate",
-                    "Enter file path to your certificate PEM file")
-            }
-            WizardStep::KeyInput => {
-                self.render_file_input(frame, chunks[1], "Private Key",
-                    "Enter file path to your private key PEM file")
-            }
-            WizardStep::CaCertInput => {
-                self.render_file_input(frame, chunks[1], "CA Certificate",
-                    "Enter file path to the CA certificate PEM file")
-            }
+            WizardStep::CertificateInput => self.render_file_input(
+                frame,
+                chunks[1],
+                "Client Certificate",
+                "Enter file path to your certificate PEM file",
+            ),
+            WizardStep::KeyInput => self.render_file_input(
+                frame,
+                chunks[1],
+                "Private Key",
+                "Enter file path to your private key PEM file",
+            ),
+            WizardStep::CaCertInput => self.render_file_input(
+                frame,
+                chunks[1],
+                "CA Certificate",
+                "Enter file path to the CA certificate PEM file",
+            ),
             WizardStep::Review => self.render_review(frame, chunks[1]),
             WizardStep::Saving => self.render_saving(frame, chunks[1]),
             WizardStep::Complete => self.render_complete(frame, chunks[1]),
@@ -183,7 +193,11 @@ impl SetupWizard {
         let title = format!(" Siphon Setup Wizard - Step {}/9 ", step_num);
         let block = Block::default()
             .title(title)
-            .title_style(Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD))
+            .title_style(
+                Style::default()
+                    .fg(Color::Cyan)
+                    .add_modifier(Modifier::BOLD),
+            )
             .borders(Borders::ALL)
             .border_style(Style::default().fg(Color::Cyan));
 
@@ -225,7 +239,9 @@ impl SetupWizard {
     }
 
     fn render_text_input(&self, frame: &mut Frame, area: Rect, title: &str, hint: &str) {
-        let block = Block::default().borders(Borders::ALL).title(format!(" {} ", title));
+        let block = Block::default()
+            .borders(Borders::ALL)
+            .title(format!(" {} ", title));
         let inner = block.inner(area);
         frame.render_widget(block, area);
 
@@ -248,8 +264,7 @@ impl SetupWizard {
             .borders(Borders::ALL)
             .border_style(Style::default().fg(Color::Yellow));
 
-        let input = Paragraph::new(self.current_input.as_str())
-            .block(input_block);
+        let input = Paragraph::new(self.current_input.as_str()).block(input_block);
         frame.render_widget(input, chunks[1]);
 
         // Show cursor
@@ -277,7 +292,7 @@ impl SetupWizard {
         let inner = block.inner(area);
         frame.render_widget(block, area);
 
-        let items: Vec<ListItem> = vec!["HTTP", "TCP"]
+        let items: Vec<ListItem> = ["HTTP", "TCP"]
             .iter()
             .enumerate()
             .map(|(i, &item)| {

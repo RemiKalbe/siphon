@@ -1,10 +1,10 @@
 //! Thread-safe metrics collection for real-time TUI dashboard
 
 use parking_lot::RwLock;
+use siphon_protocol::TunnelType;
 use std::collections::VecDeque;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
-use siphon_protocol::TunnelType;
 
 /// Maximum samples to keep in time-series data (60 seconds at 1 sample/sec)
 const HISTORY_SIZE: usize = 60;
@@ -284,12 +284,16 @@ impl MetricsCollector {
 
         // Calculate and store response time percentiles
         let (p50, p99) = calculate_percentiles(&state.response_times);
-        state.response_time_p50_history.push_back(p50.map(|d| d.as_millis() as u64).unwrap_or(0));
+        state
+            .response_time_p50_history
+            .push_back(p50.map(|d| d.as_millis() as u64).unwrap_or(0));
         if state.response_time_p50_history.len() > HISTORY_SIZE {
             state.response_time_p50_history.pop_front();
         }
 
-        state.response_time_p99_history.push_back(p99.map(|d| d.as_millis() as u64).unwrap_or(0));
+        state
+            .response_time_p99_history
+            .push_back(p99.map(|d| d.as_millis() as u64).unwrap_or(0));
         if state.response_time_p99_history.len() > HISTORY_SIZE {
             state.response_time_p99_history.pop_front();
         }

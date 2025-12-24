@@ -184,13 +184,20 @@ impl ControlPlane {
 
                                 // For TCP tunnels, allocate a port first
                                 let tcp_port = if tunnel_type == TunnelType::Tcp {
-                                    match tcp_plane.clone().allocate_and_listen(subdomain.clone()).await {
+                                    match tcp_plane
+                                        .clone()
+                                        .allocate_and_listen(subdomain.clone())
+                                        .await
+                                    {
                                         Ok(port) => Some(port),
                                         Err(e) => {
                                             tracing::error!("Failed to allocate TCP port: {}", e);
                                             let _ = tx
                                                 .send(ServerMessage::TunnelDenied {
-                                                    reason: format!("TCP port allocation failed: {}", e),
+                                                    reason: format!(
+                                                        "TCP port allocation failed: {}",
+                                                        e
+                                                    ),
                                                 })
                                                 .await;
                                             continue;
@@ -223,10 +230,7 @@ impl ControlPlane {
                                             }
                                             let _ = tx
                                                 .send(ServerMessage::TunnelDenied {
-                                                    reason: format!(
-                                                        "Registration failed: {}",
-                                                        e
-                                                    ),
+                                                    reason: format!("Registration failed: {}", e),
                                                 })
                                                 .await;
                                             continue;
@@ -235,7 +239,9 @@ impl ControlPlane {
                                         assigned_subdomain = Some(subdomain.clone());
                                         assigned_tcp_port = tcp_port;
 
-                                        let (full_url, response_port) = if tunnel_type == TunnelType::Http {
+                                        let (full_url, response_port) = if tunnel_type
+                                            == TunnelType::Http
+                                        {
                                             (format!("https://{}.{}", subdomain, base_domain), None)
                                         } else {
                                             (format!("{}.{}", subdomain, base_domain), tcp_port)

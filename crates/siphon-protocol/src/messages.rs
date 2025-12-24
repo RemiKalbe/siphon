@@ -133,7 +133,11 @@ mod tests {
         let parsed: ClientMessage = serde_json::from_str(&json).unwrap();
 
         match parsed {
-            ClientMessage::RequestTunnel { subdomain, tunnel_type, local_port } => {
+            ClientMessage::RequestTunnel {
+                subdomain,
+                tunnel_type,
+                local_port,
+            } => {
                 assert_eq!(subdomain, Some("myapp".to_string()));
                 assert_eq!(tunnel_type, TunnelType::Http);
                 assert_eq!(local_port, 3000);
@@ -153,7 +157,11 @@ mod tests {
         let parsed: ServerMessage = serde_json::from_str(&json).unwrap();
 
         match parsed {
-            ServerMessage::TunnelEstablished { subdomain, url, port } => {
+            ServerMessage::TunnelEstablished {
+                subdomain,
+                url,
+                port,
+            } => {
                 assert_eq!(subdomain, "myapp");
                 assert_eq!(url, "https://myapp.tunnel.example.com");
                 assert_eq!(port, None);

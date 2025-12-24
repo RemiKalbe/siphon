@@ -20,10 +20,9 @@ pub fn resolve(service: &str, key: &str) -> Result<String, SecretError> {
             "keychain",
             format!("Ambiguous entry: {} credentials found", creds.len()),
         ),
-        keyring::Error::NoStorageAccess(inner) => SecretError::AccessDenied(format!(
-            "Cannot access keychain storage: {}",
-            inner
-        )),
+        keyring::Error::NoStorageAccess(inner) => {
+            SecretError::AccessDenied(format!("Cannot access keychain storage: {}", inner))
+        }
         _ => SecretError::backend("keychain", e.to_string()),
     })
 }

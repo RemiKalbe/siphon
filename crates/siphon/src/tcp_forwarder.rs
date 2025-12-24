@@ -30,7 +30,11 @@ impl TcpForwarder {
 
     /// Handle a new TCP connection request from the server
     pub async fn handle_connect(&self, stream_id: u64) {
-        tracing::debug!("Opening TCP connection {} to {}", stream_id, self.local_addr);
+        tracing::debug!(
+            "Opening TCP connection {} to {}",
+            stream_id,
+            self.local_addr
+        );
 
         // Connect to local service
         let stream = match TcpStream::connect(&self.local_addr).await {
@@ -56,10 +60,8 @@ impl TcpForwarder {
         let (write_tx, mut write_rx) = mpsc::channel::<Vec<u8>>(32);
 
         // Register the connection
-        self.connections.insert(
-            stream_id,
-            TcpConnectionHandle { writer: write_tx },
-        );
+        self.connections
+            .insert(stream_id, TcpConnectionHandle { writer: write_tx });
 
         // Spawn write task
         let connections = self.connections.clone();
@@ -118,11 +120,7 @@ impl TcpForwarder {
     pub async fn handle_data(&self, stream_id: u64, data: Vec<u8>) {
         if let Some(handle) = self.connections.get(&stream_id) {
             if let Err(e) = handle.writer.send(data).await {
-                tracing::error!(
-                    "Failed to forward TCP data to stream {}: {}",
-                    stream_id,
-                    e
-                );
+                tracing::error!("Failed to forward TCP data to stream {}: {}", stream_id, e);
             }
         } else {
             tracing::warn!(

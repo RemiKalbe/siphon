@@ -6,8 +6,8 @@ use ratatui::{
     symbols,
     text::{Line, Span},
     widgets::{
-        Axis, Bar, BarChart, BarGroup, Block, Borders, Cell, Chart, Dataset, GraphType,
-        Paragraph, Row, Sparkline, Table,
+        Axis, Bar, BarChart, BarGroup, Block, Borders, Cell, Chart, Dataset, GraphType, Paragraph,
+        Row, Sparkline, Table,
     },
     Frame,
 };
@@ -60,7 +60,11 @@ impl Dashboard {
     fn render_tunnel_info(frame: &mut Frame, area: Rect, snapshot: &MetricsSnapshot) {
         let block = Block::default()
             .title(" Siphon - Tunnel Status ")
-            .title_style(Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD))
+            .title_style(
+                Style::default()
+                    .fg(Color::Cyan)
+                    .add_modifier(Modifier::BOLD),
+            )
             .borders(Borders::ALL)
             .border_style(Style::default().fg(Color::Cyan));
 
@@ -228,11 +232,7 @@ impl Dashboard {
         ];
         let chart = Chart::new(datasets)
             .x_axis(Axis::default().bounds([0.0, 60.0]))
-            .y_axis(
-                Axis::default()
-                    .bounds([0.0, max_time])
-                    .labels(y_labels),
-            );
+            .y_axis(Axis::default().bounds([0.0, max_time]).labels(y_labels));
 
         frame.render_widget(chart, chunks[0]);
 
@@ -299,9 +299,7 @@ impl Dashboard {
     }
 
     fn render_throughput(frame: &mut Frame, area: Rect, snapshot: &MetricsSnapshot) {
-        let block = Block::default()
-            .title(" Throughput ")
-            .borders(Borders::ALL);
+        let block = Block::default().title(" Throughput ").borders(Borders::ALL);
 
         let inner = block.inner(area);
         frame.render_widget(block, area);
@@ -320,9 +318,10 @@ impl Dashboard {
         let in_data: Vec<u64> = snapshot.bytes_in_rate_history.clone();
         let in_max = in_data.iter().max().copied().unwrap_or(1).max(1);
 
-        let in_label = Line::from(vec![
-            Span::styled("In:  ", Style::default().fg(Color::Gray)),
-        ]);
+        let in_label = Line::from(vec![Span::styled(
+            "In:  ",
+            Style::default().fg(Color::Gray),
+        )]);
         frame.render_widget(Paragraph::new(in_label), chunks[0]);
 
         let in_sparkline_area = Rect {
@@ -342,9 +341,10 @@ impl Dashboard {
         let out_data: Vec<u64> = snapshot.bytes_out_rate_history.clone();
         let out_max = out_data.iter().max().copied().unwrap_or(1).max(1);
 
-        let out_label = Line::from(vec![
-            Span::styled("Out: ", Style::default().fg(Color::Gray)),
-        ]);
+        let out_label = Line::from(vec![Span::styled(
+            "Out: ",
+            Style::default().fg(Color::Gray),
+        )]);
         frame.render_widget(Paragraph::new(out_label), chunks[1]);
 
         let out_sparkline_area = Rect {
@@ -363,10 +363,16 @@ impl Dashboard {
         // Stats
         let stats = Line::from(vec![
             Span::styled("Total In: ", Style::default().fg(Color::Gray)),
-            Span::styled(format_bytes(snapshot.bytes_in), Style::default().fg(Color::Cyan)),
+            Span::styled(
+                format_bytes(snapshot.bytes_in),
+                Style::default().fg(Color::Cyan),
+            ),
             Span::raw(" │ "),
             Span::styled("Out: ", Style::default().fg(Color::Gray)),
-            Span::styled(format_bytes(snapshot.bytes_out), Style::default().fg(Color::Magenta)),
+            Span::styled(
+                format_bytes(snapshot.bytes_out),
+                Style::default().fg(Color::Magenta),
+            ),
             Span::raw(" │ "),
             Span::styled("Conn: ", Style::default().fg(Color::Gray)),
             Span::raw(snapshot.active_connections.to_string()),
