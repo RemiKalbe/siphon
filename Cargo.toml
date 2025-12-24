@@ -51,6 +51,7 @@ crossterm = { version = "0.28", features = ["event-stream"] }
 chrono = "0.4"
 dirs = "5"
 shellexpand = "3"
+rustyline = "15"
 
 # Workspace crates (version required for crates.io publishing)
 siphon-protocol = { path = "crates/siphon-protocol", version = "0.1.0" }
