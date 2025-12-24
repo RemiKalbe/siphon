@@ -406,9 +406,7 @@ impl SetupWizard {
             SetForegroundColor(Color::White),
             Print(format!("  {} ", label)),
             SetForegroundColor(Color::DarkGrey),
-            Print(format!("({}) ", placeholder)),
-            SetForegroundColor(Color::DarkGrey),
-            Print("[Tab to complete]"),
+            Print(format!("({})", placeholder)),
             ResetColor,
         )?;
         println!();
