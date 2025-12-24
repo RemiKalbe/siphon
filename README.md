@@ -81,6 +81,55 @@ Or use Docker:
 docker-compose up -d
 ```
 
+## Generating mTLS Certificates
+
+Siphon uses mutual TLS (mTLS) for secure client-server authentication. You need:
+- A Certificate Authority (CA)
+- A server certificate signed by the CA
+- Client certificates signed by the CA
+
+### Using OpenSSL
+
+```bash
+# 1. Create the CA
+openssl genrsa -out ca.key 4096
+openssl req -new -x509 -days 3650 -key ca.key -out ca.crt \
+  -subj "/CN=Siphon CA"
+
+# 2. Create the server certificate
+openssl genrsa -out server.key 4096
+openssl req -new -key server.key -out server.csr \
+  -subj "/CN=tunnel.example.com"
+openssl x509 -req -days 365 -in server.csr -CA ca.crt -CAkey ca.key \
+  -CAcreateserial -out server.crt
+
+# 3. Create a client certificate
+openssl genrsa -out client.key 4096
+openssl req -new -key client.key -out client.csr \
+  -subj "/CN=client1"
+openssl x509 -req -days 365 -in client.csr -CA ca.crt -CAkey ca.key \
+  -CAcreateserial -out client.crt
+```
+
+### Using step-ca (recommended)
+
+[step-ca](https://smallstep.com/docs/step-ca/) provides a simpler workflow:
+
+```bash
+# Install step CLI
+brew install step  # macOS
+# or: https://smallstep.com/docs/step-cli/installation/
+
+# Initialize a CA
+step ca init --name "Siphon CA" --provisioner admin
+
+# Issue server certificate
+step ca certificate tunnel.example.com server.crt server.key
+
+# Issue client certificate
+step ca certificate client1 client.crt client.key
+```
+
 ## Configuration
 
 ### Client
