@@ -62,8 +62,8 @@ export SIPHON_CERT="file:///path/to/server.crt"
 export SIPHON_KEY="file:///path/to/server.key"
 export SIPHON_CA_CERT="file:///path/to/ca.crt"
 
-# Or use base64 for CI/CD environments:
-# export SIPHON_CERT="base64://LS0tLS1CRUdJTi..."
+# Or use base64 for CI/CD environments (use `siphon encode` to generate):
+# export SIPHON_CERT="$(siphon encode /path/to/server.crt)"
 
 # SIPHON_SERVER_IP is optional - auto-detected if not set
 # Warning: Some cloud providers use different IPs for inbound vs outbound traffic.
@@ -100,6 +100,19 @@ ca_cert = "keychain://siphon/ca"
 ### Server
 
 See [server.example.toml](server.example.toml) for configuration options.
+
+## Utilities
+
+### Encode certificates as base64
+
+Use the `encode` command to convert certificates/keys to base64 for use in environment variables or CI/CD:
+
+```bash
+siphon encode /path/to/server.crt
+# Output: base64://LS0tLS1CRUdJTi...
+```
+
+This ensures consistent base64 encoding that's compatible with Siphon's decoder.
 
 ## License
 
