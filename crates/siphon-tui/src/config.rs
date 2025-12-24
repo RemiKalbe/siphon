@@ -36,10 +36,11 @@ impl Default for SiphonConfig {
 }
 
 impl SiphonConfig {
-    /// Get the default config directory path
+    /// Get the default config directory path (~/.config/siphon)
     pub fn config_dir() -> PathBuf {
-        dirs::config_dir()
+        dirs::home_dir()
             .unwrap_or_else(|| PathBuf::from("."))
+            .join(".config")
             .join("siphon")
     }
 
