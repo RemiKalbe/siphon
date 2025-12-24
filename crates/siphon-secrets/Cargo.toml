@@ -11,11 +11,18 @@ thiserror = { workspace = true }
 tracing = { workspace = true }
 serde = { workspace = true }
 
-# OS Keychain support (macOS Keychain, Windows Credential Manager, Linux Secret Service)
-keyring = { version = "3", optional = true }
-
 # Base64 decoding support
 base64 = { version = "0.22", optional = true }
+
+# OS Keychain support - use native backends for reliability
+[target.'cfg(target_os = "macos")'.dependencies]
+keyring = { version = "3", optional = true, features = ["apple-native"] }
+
+[target.'cfg(target_os = "windows")'.dependencies]
+keyring = { version = "3", optional = true, features = ["windows-native"] }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+keyring = { version = "3", optional = true, features = ["linux-native"] }
 
 [dev-dependencies]
 tempfile = "3"
