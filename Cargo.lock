@@ -1707,6 +1707,7 @@ dependencies = [
  "hyper-util",
  "parking_lot",
  "reqwest",
+ "rustls",
  "serde",
  "serde_json",
  "siphon-common",

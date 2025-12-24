@@ -34,6 +34,11 @@ struct Args {
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    // Install crypto provider before any TLS operations
+    rustls::crypto::ring::default_provider()
+        .install_default()
+        .expect("Failed to install rustls crypto provider");
+
     // Initialize logging
     tracing_subscriber::fmt()
         .with_env_filter(
