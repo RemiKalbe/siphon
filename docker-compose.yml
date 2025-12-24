@@ -52,6 +52,10 @@ services:
       # SIPHON_TCP_PORT_START: 30000
       # SIPHON_TCP_PORT_END: 40000
 
+      # Optional: HTTP plane TLS for Cloudflare Full (Strict) mode
+      # SIPHON_HTTP_CERT: "file:///app/certs/origin.crt"
+      # SIPHON_HTTP_KEY: "file:///app/certs/origin.key"
+
       # Logging
       RUST_LOG: "siphon_server=info,siphon_common=info"
 

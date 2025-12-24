@@ -12,8 +12,10 @@ use hyper::server::conn::http1;
 use hyper::service::service_fn;
 use hyper::{Request, Response, StatusCode};
 use hyper_util::rt::TokioIo;
+use tokio::io::{AsyncRead, AsyncWrite};
 use tokio::net::TcpListener;
 use tokio::sync::oneshot;
+use tokio_rustls::TlsAcceptor;
 
 use siphon_protocol::ServerMessage;
 
@@ -27,6 +29,8 @@ pub struct HttpPlane {
     stream_id_counter: AtomicU64,
     /// Shared registry for pending responses
     response_registry: ResponseRegistry,
+    /// Optional TLS acceptor for HTTPS mode
+    tls_acceptor: Option<TlsAcceptor>,
 }
 
 impl HttpPlane {
@@ -34,12 +38,14 @@ impl HttpPlane {
         router: Arc<Router>,
         base_domain: String,
         response_registry: ResponseRegistry,
+        tls_acceptor: Option<TlsAcceptor>,
     ) -> Arc<Self> {
         Arc::new(Self {
             router,
             base_domain,
             stream_id_counter: AtomicU64::new(1),
             response_registry,
+            tls_acceptor,
         })
     }
 
@@ -47,25 +53,51 @@ impl HttpPlane {
         self.stream_id_counter.fetch_add(1, Ordering::Relaxed)
     }
 
-    /// Start listening for HTTP traffic from Cloudflare
+    /// Serve an HTTP connection on any AsyncRead + AsyncWrite stream
+    async fn serve_connection<S>(self: Arc<Self>, stream: S, peer_addr: SocketAddr)
+    where
+        S: AsyncRead + AsyncWrite + Unpin + Send + 'static,
+    {
+        let io = TokioIo::new(stream);
+
+        let service = service_fn(move |req| {
+            let this = self.clone();
+            async move { this.handle_request(req).await }
+        });
+
+        if let Err(e) = http1::Builder::new().serve_connection(io, service).await {
+            tracing::debug!("HTTP connection error from {}: {}", peer_addr, e);
+        }
+    }
+
+    /// Start listening for HTTP/HTTPS traffic from Cloudflare
     pub async fn run(self: Arc<Self>, addr: SocketAddr) -> Result<()> {
         let listener = TcpListener::bind(addr).await?;
-        tracing::info!("HTTP plane listening on {}", addr);
+
+        if self.tls_acceptor.is_some() {
+            tracing::info!("HTTPS plane listening on {}", addr);
+        } else {
+            tracing::info!("HTTP plane listening on {}", addr);
+        }
 
         loop {
             let (stream, peer_addr) = listener.accept().await?;
             let this = self.clone();
 
             tokio::spawn(async move {
-                let io = TokioIo::new(stream);
-
-                let service = service_fn(move |req| {
-                    let this = this.clone();
-                    async move { this.handle_request(req).await }
-                });
-
-                if let Err(e) = http1::Builder::new().serve_connection(io, service).await {
-                    tracing::error!("HTTP connection error from {}: {}", peer_addr, e);
+                if let Some(ref acceptor) = this.tls_acceptor {
+                    // TLS mode
+                    match acceptor.accept(stream).await {
+                        Ok(tls_stream) => {
+                            this.serve_connection(tls_stream, peer_addr).await;
+                        }
+                        Err(e) => {
+                            tracing::debug!("TLS handshake failed from {}: {}", peer_addr, e);
+                        }
+                    }
+                } else {
+                    // Plain HTTP mode
+                    this.serve_connection(stream, peer_addr).await;
                 }
             });
         }

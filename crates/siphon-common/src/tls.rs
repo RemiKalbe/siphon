@@ -154,6 +154,28 @@ pub fn load_server_config_from_pem(
     Ok(config)
 }
 
+/// Load server TLS config from PEM content WITHOUT client certificate verification
+///
+/// Use this for HTTPS endpoints that don't need mTLS (e.g., HTTP data plane for Cloudflare)
+///
+/// # Arguments
+/// * `cert_pem` - Server certificate PEM content
+/// * `key_pem` - Server private key PEM content
+pub fn load_server_config_no_client_auth(
+    cert_pem: &str,
+    key_pem: &str,
+) -> Result<ServerConfig, TunnelError> {
+    let certs = load_certs_from_pem(cert_pem)?;
+    let key = load_private_key_from_pem(key_pem)?;
+
+    let config = ServerConfig::builder()
+        .with_no_client_auth()
+        .with_single_cert(certs, key)
+        .map_err(|e| TunnelError::Tls(format!("Failed to build server config: {}", e)))?;
+
+    Ok(config)
+}
+
 /// Load client TLS config from PEM content strings with mTLS
 ///
 /// # Arguments

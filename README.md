@@ -6,7 +6,7 @@ Secure tunnel client and server for exposing local services through mTLS-authent
 
 - **mTLS Authentication** - Certificate-based mutual TLS for secure client-server communication
 - **HTTP & TCP Tunnels** - Support for both HTTP and raw TCP tunnel types
-- **Cloudflare DNS Integration** - Automatic subdomain creation via Cloudflare API
+- **Cloudflare DNS Integration** - Automatic subdomain creation via Cloudflare API (supports Full Strict SSL)
 - **TUI Dashboard** - Real-time metrics and monitoring with terminal UI
 - **Interactive Setup** - Guided wizard for configuration with OS keychain integration
 - **Cross-Platform** - Runs on Linux, macOS, and Windows
@@ -102,6 +102,17 @@ ca_cert = "keychain://siphon/ca"
 ### Server
 
 See [server.example.toml](server.example.toml) for configuration options.
+
+### Cloudflare Full (Strict) SSL
+
+To enable HTTPS on the HTTP data plane (required for Cloudflare Full Strict mode):
+
+```bash
+export SIPHON_HTTP_CERT="file:///path/to/origin.crt"
+export SIPHON_HTTP_KEY="file:///path/to/origin.key"
+```
+
+You can use a [Cloudflare Origin CA certificate](https://developers.cloudflare.com/ssl/origin-configuration/origin-ca/) (free, trusted only by Cloudflare) or any valid certificate for your domain.
 
 ## Utilities
 
