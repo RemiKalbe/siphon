@@ -64,6 +64,12 @@ struct Cli {
 enum Commands {
     /// Run interactive setup wizard
     Setup,
+
+    /// Encode a file as base64 for use in config
+    Encode {
+        /// Path to the file to encode (certificate, key, etc.)
+        file: String,
+    },
 }
 
 /// Resolved configuration from CLI args and/or config file
@@ -154,9 +160,11 @@ impl ResolvedConfig {
 async fn main() -> Result<()> {
     let cli = Cli::parse();
 
-    // Handle setup command
-    if let Some(Commands::Setup) = cli.command {
-        return run_setup();
+    // Handle subcommands
+    match &cli.command {
+        Some(Commands::Setup) => return run_setup(),
+        Some(Commands::Encode { file }) => return run_encode(file),
+        None => {}
     }
 
     // Resolve configuration
@@ -266,6 +274,19 @@ fn run_setup() -> Result<()> {
             Ok(())
         }
     }
+}
+
+fn run_encode(file_path: &str) -> Result<()> {
+    use base64::Engine;
+
+    let content =
+        std::fs::read(file_path).with_context(|| format!("Failed to read file: {}", file_path))?;
+
+    let encoded = base64::engine::general_purpose::STANDARD.encode(&content);
+
+    println!("base64://{}", encoded);
+
+    Ok(())
 }
 
 async fn run_cli_mode(
