@@ -1,7 +1,9 @@
 //! Main TUI application with event loop
 
 use crossterm::{
-    event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode, KeyEventKind, KeyModifiers},
+    event::{
+        self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode, KeyEventKind, KeyModifiers,
+    },
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
@@ -10,8 +12,8 @@ use std::io;
 use std::time::Duration;
 use tokio::sync::mpsc;
 
-use crate::metrics::MetricsCollector;
 use super::dashboard::Dashboard;
+use crate::metrics::MetricsCollector;
 
 /// Main TUI application
 pub struct TuiApp {
@@ -22,7 +24,10 @@ pub struct TuiApp {
 impl TuiApp {
     /// Create a new TUI application
     pub fn new(metrics: MetricsCollector, shutdown_tx: mpsc::Sender<()>) -> Self {
-        Self { metrics, shutdown_tx }
+        Self {
+            metrics,
+            shutdown_tx,
+        }
     }
 
     /// Run the TUI event loop (blocking)

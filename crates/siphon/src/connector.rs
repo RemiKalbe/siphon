@@ -34,7 +34,7 @@ impl TunnelConnection {
         let local_port: u16 = self
             .local_addr
             .split(':')
-            .last()
+            .next_back()
             .and_then(|s| s.parse().ok())
             .unwrap_or(0);
 
@@ -113,14 +113,22 @@ impl TunnelConnection {
                 match codec.decode(&mut read_buf) {
                     Ok(Some(msg)) => {
                         match msg {
-                            ServerMessage::TunnelEstablished { subdomain, url, port } => {
+                            ServerMessage::TunnelEstablished {
+                                subdomain,
+                                url,
+                                port,
+                            } => {
                                 tracing::info!("Tunnel established!");
                                 tracing::info!("  Subdomain: {}", subdomain);
                                 tracing::info!("  URL: {}", url);
                                 if let Some(p) = port {
                                     tracing::info!("  TCP Port: {}", p);
                                 }
-                                println!("\n  Forwarding {} -> {}\n", url, http_forwarder.local_addr());
+                                println!(
+                                    "\n  Forwarding {} -> {}\n",
+                                    url,
+                                    http_forwarder.local_addr()
+                                );
                             }
                             ServerMessage::TunnelDenied { reason } => {
                                 tracing::error!("Tunnel denied: {}", reason);
@@ -133,12 +141,7 @@ impl TunnelConnection {
                                 headers,
                                 body,
                             } => {
-                                tracing::debug!(
-                                    "HTTP request {}: {} {}",
-                                    stream_id,
-                                    method,
-                                    uri
-                                );
+                                tracing::debug!("HTTP request {}: {} {}", stream_id, method, uri);
 
                                 // Forward request to local service
                                 let tx = response_tx.clone();
@@ -179,11 +182,7 @@ impl TunnelConnection {
                                 tcp_forwarder.handle_connect(stream_id).await;
                             }
                             ServerMessage::TcpData { stream_id, data } => {
-                                tracing::debug!(
-                                    "TCP data {}: {} bytes",
-                                    stream_id,
-                                    data.len()
-                                );
+                                tracing::debug!("TCP data {}: {} bytes", stream_id, data.len());
                                 tcp_forwarder.handle_data(stream_id, data).await;
                             }
                             ServerMessage::TcpClose { stream_id } => {

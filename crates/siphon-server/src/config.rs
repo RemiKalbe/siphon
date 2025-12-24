@@ -123,32 +123,32 @@ impl ServerConfig {
             .unwrap_or(4443);
 
         // HTTP port: ENV > config > default 8080
-        let http_port = get_env_u16("HTTP_PORT")
-            .or(self.http_port)
-            .unwrap_or(8080);
+        let http_port = get_env_u16("HTTP_PORT").or(self.http_port).unwrap_or(8080);
 
         // Base domain: ENV > config > required
-        let base_domain = get_env("BASE_DOMAIN")
-            .or(self.base_domain)
-            .ok_or_else(|| anyhow::anyhow!(
-                "Base domain required. Set SIPHON_BASE_DOMAIN or base_domain in config"
-            ))?;
+        let base_domain = get_env("BASE_DOMAIN").or(self.base_domain).ok_or_else(|| {
+            anyhow::anyhow!("Base domain required. Set SIPHON_BASE_DOMAIN or base_domain in config")
+        })?;
 
         // Certificate: ENV > ENV_FILE > config > required
         let cert_source = get_env("CERT")
             .or_else(|| get_env("CERT_FILE").map(|f| format!("file://{}", f)))
             .or(self.cert)
-            .ok_or_else(|| anyhow::anyhow!(
-                "Certificate required. Set SIPHON_CERT, SIPHON_CERT_FILE, or cert in config"
-            ))?;
+            .ok_or_else(|| {
+                anyhow::anyhow!(
+                    "Certificate required. Set SIPHON_CERT, SIPHON_CERT_FILE, or cert in config"
+                )
+            })?;
 
         // Key: ENV > ENV_FILE > config > required
         let key_source = get_env("KEY")
             .or_else(|| get_env("KEY_FILE").map(|f| format!("file://{}", f)))
             .or(self.key)
-            .ok_or_else(|| anyhow::anyhow!(
-                "Private key required. Set SIPHON_KEY, SIPHON_KEY_FILE, or key in config"
-            ))?;
+            .ok_or_else(|| {
+                anyhow::anyhow!(
+                    "Private key required. Set SIPHON_KEY, SIPHON_KEY_FILE, or key in config"
+                )
+            })?;
 
         // CA cert: ENV > ENV_FILE > config > required
         let ca_cert_source = get_env("CA_CERT")
@@ -191,31 +191,31 @@ impl ServerConfig {
         // Resolve secrets
         tracing::info!("Resolving secrets...");
 
-        let cert_uri: SecretUri = cert_source.parse().map_err(|e| {
-            anyhow::anyhow!("Invalid certificate source: {}", e)
-        })?;
-        let key_uri: SecretUri = key_source.parse().map_err(|e| {
-            anyhow::anyhow!("Invalid key source: {}", e)
-        })?;
-        let ca_cert_uri: SecretUri = ca_cert_source.parse().map_err(|e| {
-            anyhow::anyhow!("Invalid CA certificate source: {}", e)
-        })?;
-        let api_token_uri: SecretUri = cf_api_token_source.parse().map_err(|e| {
-            anyhow::anyhow!("Invalid Cloudflare API token source: {}", e)
-        })?;
+        let cert_uri: SecretUri = cert_source
+            .parse()
+            .map_err(|e| anyhow::anyhow!("Invalid certificate source: {}", e))?;
+        let key_uri: SecretUri = key_source
+            .parse()
+            .map_err(|e| anyhow::anyhow!("Invalid key source: {}", e))?;
+        let ca_cert_uri: SecretUri = ca_cert_source
+            .parse()
+            .map_err(|e| anyhow::anyhow!("Invalid CA certificate source: {}", e))?;
+        let api_token_uri: SecretUri = cf_api_token_source
+            .parse()
+            .map_err(|e| anyhow::anyhow!("Invalid Cloudflare API token source: {}", e))?;
 
-        let cert_pem = resolver.resolve_trimmed(&cert_uri).map_err(|e| {
-            anyhow::anyhow!("Failed to resolve certificate: {}", e)
-        })?;
-        let key_pem = resolver.resolve_trimmed(&key_uri).map_err(|e| {
-            anyhow::anyhow!("Failed to resolve private key: {}", e)
-        })?;
-        let ca_cert_pem = resolver.resolve_trimmed(&ca_cert_uri).map_err(|e| {
-            anyhow::anyhow!("Failed to resolve CA certificate: {}", e)
-        })?;
-        let api_token = resolver.resolve_trimmed(&api_token_uri).map_err(|e| {
-            anyhow::anyhow!("Failed to resolve Cloudflare API token: {}", e)
-        })?;
+        let cert_pem = resolver
+            .resolve_trimmed(&cert_uri)
+            .map_err(|e| anyhow::anyhow!("Failed to resolve certificate: {}", e))?;
+        let key_pem = resolver
+            .resolve_trimmed(&key_uri)
+            .map_err(|e| anyhow::anyhow!("Failed to resolve private key: {}", e))?;
+        let ca_cert_pem = resolver
+            .resolve_trimmed(&ca_cert_uri)
+            .map_err(|e| anyhow::anyhow!("Failed to resolve CA certificate: {}", e))?;
+        let api_token = resolver
+            .resolve_trimmed(&api_token_uri)
+            .map_err(|e| anyhow::anyhow!("Failed to resolve Cloudflare API token: {}", e))?;
 
         tracing::info!("All secrets resolved successfully");
 

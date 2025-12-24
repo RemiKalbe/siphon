@@ -1,7 +1,7 @@
 use dashmap::DashMap;
+use siphon_protocol::{ServerMessage, TunnelType};
 use std::sync::Arc;
 use tokio::sync::mpsc;
-use siphon_protocol::{ServerMessage, TunnelType};
 
 /// Handle to a tunnel connection
 pub struct TunnelHandle {

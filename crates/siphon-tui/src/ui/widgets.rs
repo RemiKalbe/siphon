@@ -2,6 +2,8 @@
 //!
 //! This module contains helper widgets and components used across the TUI.
 
+#![allow(dead_code)]
+
 use ratatui::{
     layout::Rect,
     style::{Color, Style},
@@ -66,9 +68,15 @@ pub fn key_hints(hints: &[(&str, &str)]) -> Line<'static> {
             spans.push(Span::raw("  "));
         }
         spans.push(Span::styled("[", Style::default().fg(Color::DarkGray)));
-        spans.push(Span::styled(key.to_string(), Style::default().fg(Color::Yellow)));
+        spans.push(Span::styled(
+            key.to_string(),
+            Style::default().fg(Color::Yellow),
+        ));
         spans.push(Span::styled("] ", Style::default().fg(Color::DarkGray)));
-        spans.push(Span::styled(action.to_string(), Style::default().fg(Color::Gray)));
+        spans.push(Span::styled(
+            action.to_string(),
+            Style::default().fg(Color::Gray),
+        ));
     }
     Line::from(spans)
 }

@@ -126,7 +126,11 @@ mod tests {
         // Decode
         let decoded = codec.decode(&mut buf).unwrap().unwrap();
         match decoded {
-            ClientMessage::RequestTunnel { subdomain, tunnel_type, local_port } => {
+            ClientMessage::RequestTunnel {
+                subdomain,
+                tunnel_type,
+                local_port,
+            } => {
                 assert_eq!(subdomain, Some("test".to_string()));
                 assert_eq!(tunnel_type, TunnelType::Http);
                 assert_eq!(local_port, 8080);
@@ -153,7 +157,12 @@ mod tests {
         // Decode
         let decoded = codec.decode(&mut buf).unwrap().unwrap();
         match decoded {
-            ServerMessage::HttpRequest { stream_id, method, uri, .. } => {
+            ServerMessage::HttpRequest {
+                stream_id,
+                method,
+                uri,
+                ..
+            } => {
                 assert_eq!(stream_id, 42);
                 assert_eq!(method, "GET");
                 assert_eq!(uri, "/api/test");

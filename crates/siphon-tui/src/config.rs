@@ -150,7 +150,6 @@ impl SiphonConfig {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::io::Write;
 
     #[test]
     fn test_default_config() {
@@ -181,7 +180,7 @@ mod tests {
             ca_cert: "keychain://siphon/ca".to_string(),
         };
 
-        let mut temp_file = tempfile::NamedTempFile::new().unwrap();
+        let temp_file = tempfile::NamedTempFile::new().unwrap();
         let path = temp_file.path().to_path_buf();
 
         config.save(&path).unwrap();
