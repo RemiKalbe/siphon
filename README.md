@@ -41,7 +41,7 @@ siphon setup
 Or provide configuration directly:
 
 ```bash
-siphon --server tunnel.example.com:4443 \
+siphon --server tunnel.example.com:443 \
        --local 127.0.0.1:3000 \
        --cert ./client.crt \
        --key ./client.key \
@@ -88,7 +88,7 @@ docker-compose up -d
 Configuration is stored in `~/.config/siphon/config.toml`:
 
 ```toml
-server_addr = "tunnel.example.com:4443"
+server_addr = "tunnel.example.com:443"
 local_addr = "127.0.0.1:3000"
 subdomain = "myapp"
 tunnel_type = "http"
