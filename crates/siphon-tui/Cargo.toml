@@ -13,6 +13,7 @@ siphon-secrets = { workspace = true }
 # TUI
 ratatui = { workspace = true }
 crossterm = { workspace = true }
+rustyline = { workspace = true }
 
 # Async
 tokio = { workspace = true }
