@@ -32,13 +32,19 @@ cargo build --release
 
 ### Client Setup
 
-Run the interactive setup wizard:
+Run the setup wizard to configure server connection:
 
 ```bash
 siphon setup
 ```
 
-Or provide configuration directly:
+Then start a tunnel:
+
+```bash
+siphon --local 127.0.0.1:3000
+```
+
+Or provide all options directly:
 
 ```bash
 siphon --server tunnel.example.com:4443 \
@@ -47,6 +53,11 @@ siphon --server tunnel.example.com:4443 \
        --key ./client.key \
        --ca ./ca.crt
 ```
+
+Options:
+- `--local` (required): Local address to forward (e.g., `127.0.0.1:3000`)
+- `--subdomain`: Request a specific subdomain (optional, auto-generated if not set)
+- `--tunnel-type`: `http` (default) or `tcp`
 
 Certificates support multiple formats: file path, `file://`, `base64://`, `op://` (1Password), `keychain://`.
 
@@ -119,19 +130,18 @@ openssl x509 -req -days 365 -in client.csr -CA ca.crt -CAkey ca.key \
 
 ### Client
 
-Configuration is stored in `~/.config/siphon/config.toml`:
+Connection settings are stored in `~/.config/siphon/config.toml`:
 
 ```toml
 server_addr = "tunnel.example.com:4443"
-local_addr = "127.0.0.1:3000"
-subdomain = "myapp"
-tunnel_type = "http"
 
 # Secrets can reference keychain, files, or environment variables
 cert = "keychain://siphon/cert"
 key = "keychain://siphon/key"
 ca_cert = "keychain://siphon/ca"
 ```
+
+Runtime options (`--local`, `--subdomain`, `--tunnel-type`) are provided when starting the tunnel.
 
 ### Server
 
