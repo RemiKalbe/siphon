@@ -89,17 +89,12 @@ impl ResolvedConfig {
         // Try to load config file
         let config_file = SiphonConfig::load_default().ok();
 
-        // Server address (default port 443)
+        // Server address
         let server_addr = cli
             .server
             .clone()
             .or_else(|| config_file.as_ref().map(|c| c.server_addr.clone()))
             .context("Server address required. Use --server or run 'siphon setup'")?;
-        let server_addr = if server_addr.contains(':') {
-            server_addr
-        } else {
-            format!("{}:443", server_addr)
-        };
 
         // Local address
         let local_addr = cli
