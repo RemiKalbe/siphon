@@ -59,7 +59,7 @@ export SIPHON_KEY_FILE="/path/to/server.key"
 export SIPHON_CA_CERT_FILE="/path/to/ca.crt"
 export SIPHON_CLOUDFLARE_API_TOKEN="your-token"
 export SIPHON_CLOUDFLARE_ZONE_ID="your-zone-id"
-export SIPHON_CLOUDFLARE_SERVER_IP="your-server-ip"
+# SIPHON_SERVER_IP is optional - auto-detected if not set
 
 siphon-server
 ```
