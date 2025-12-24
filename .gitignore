@@ -1,0 +1,19 @@
+# Build artifacts
+/target/
+**/*.rs.bk
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Configuration files with secrets
+server.toml
+client.toml
+*.key
+*.crt
+*.pem
+
+# Keep example configs
+!*.example.toml

@@ -1,0 +1,24 @@
+[package]
+name = "siphon-secrets"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Secret management with multiple backend support for Siphon"
+
+[dependencies]
+thiserror = { workspace = true }
+tracing = { workspace = true }
+serde = { workspace = true }
+
+# OS Keychain support (macOS Keychain, Windows Credential Manager, Linux Secret Service)
+keyring = { version = "3", optional = true }
+
+[dev-dependencies]
+tempfile = "3"
+
+[features]
+default = ["keychain", "onepassword", "env", "file"]
+keychain = ["dep:keyring"]
+onepassword = []
+env = []
+file = []

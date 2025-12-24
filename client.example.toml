@@ -1,0 +1,31 @@
+# Tunnel Client Configuration
+
+# Tunnel server address (host:port)
+server_addr = "tunnel.example.com:4443"
+
+# TLS Certificates and Keys
+# Supported formats:
+#   - File path: "/etc/tunnel/client.crt" or "file:///etc/tunnel/client.crt"
+#   - OS Keychain: "keychain://tunnel-client/cert" (macOS Keychain, Windows Credential Manager, Linux Secret Service)
+#   - 1Password CLI: "op://vault/item/field" (requires 'op' CLI installed and authenticated)
+#   - Environment variable: "env://TUNNEL_CLIENT_CERT"
+
+# Client certificate (PEM format)
+cert = "/etc/tunnel/client.crt"
+
+# Client private key (PEM format)
+key = "/etc/tunnel/client.key"
+# Or use keychain: key = "keychain://tunnel-client/private-key"
+# Or use 1Password: key = "op://Development/tunnel-client/private-key"
+
+# CA certificate (PEM format)
+ca_cert = "/etc/tunnel/ca.crt"
+
+# Requested subdomain (optional, auto-generated if not specified)
+# subdomain = "myapp"
+
+# Local service address to forward to
+local_addr = "127.0.0.1:3000"
+
+# Tunnel type: "http" or "tcp"
+tunnel_type = "http"
