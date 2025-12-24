@@ -1,0 +1,13 @@
+[package]
+name = "siphon-protocol"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Wire protocol for Siphon tunnel communication"
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+tokio-util = { workspace = true }
+bytes = { workspace = true }
+thiserror = { workspace = true }

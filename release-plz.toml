@@ -1,0 +1,35 @@
+# release-plz configuration
+# https://release-plz.ieni.dev/docs/config
+
+[workspace]
+changelog_update = true
+git_release_enable = true
+git_tag_enable = true
+publish = true
+semver_check = true
+
+# Only publish the binaries to crates.io
+[[package]]
+name = "siphon"
+publish = true
+
+[[package]]
+name = "siphon-server"
+publish = true
+
+# Don't publish library crates
+[[package]]
+name = "siphon-common"
+publish = false
+
+[[package]]
+name = "siphon-protocol"
+publish = false
+
+[[package]]
+name = "siphon-secrets"
+publish = false
+
+[[package]]
+name = "siphon-tui"
+publish = false

@@ -1,0 +1,50 @@
+# Tunnel Server Configuration
+
+# Port for control plane (mTLS client connections)
+control_port = 4443
+
+# Port for HTTP data plane (traffic from Cloudflare)
+http_port = 80
+
+# Base domain for tunnels (e.g., "tunnel.example.com")
+# Clients will get subdomains like "myapp.tunnel.example.com"
+base_domain = "tunnel.example.com"
+
+# TLS Certificates and Keys
+# Supported formats:
+#   - File path: "/etc/tunnel/server.crt" or "file:///etc/tunnel/server.crt"
+#   - OS Keychain: "keychain://tunnel-server/cert" (macOS Keychain, Windows Credential Manager, Linux Secret Service)
+#   - 1Password CLI: "op://vault/item/field" (requires 'op' CLI installed and authenticated)
+#   - Environment variable: "env://TUNNEL_SERVER_CERT"
+
+# Server certificate (PEM format)
+cert = "/etc/tunnel/server.crt"
+
+# Server private key (PEM format)
+key = "/etc/tunnel/server.key"
+# Or use keychain: key = "keychain://tunnel-server/private-key"
+# Or use 1Password: key = "op://Infrastructure/tunnel-server/private-key"
+
+# CA certificate for client verification (PEM format)
+ca_cert = "/etc/tunnel/ca.crt"
+
+# TCP port range for TCP tunnels (optional)
+tcp_port_range = [30000, 40000]
+
+[cloudflare]
+# API token with DNS edit permissions
+# Create at: https://dash.cloudflare.com/profile/api-tokens
+# Required permissions: Zone:DNS:Edit
+#
+# Recommended: Store securely using one of:
+#   - 1Password: "op://Private/Cloudflare/tunnel-api-token"
+#   - OS Keychain: "keychain://tunnel-server/cloudflare-token"
+#   - Environment: "env://CLOUDFLARE_API_TOKEN"
+api_token = "env://CLOUDFLARE_API_TOKEN"
+
+# Zone ID for the domain
+# Found in the Cloudflare dashboard under your domain's Overview page
+zone_id = "your-zone-id"
+
+# Server's public IP (for DNS A records)
+server_ip = "1.2.3.4"

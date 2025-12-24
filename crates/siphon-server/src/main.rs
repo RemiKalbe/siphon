@@ -1,0 +1,160 @@
+use std::net::SocketAddr;
+use std::sync::Arc;
+
+use anyhow::{Context, Result};
+use clap::Parser;
+use tokio_rustls::TlsAcceptor;
+use tracing_subscriber::EnvFilter;
+
+mod cloudflare;
+mod config;
+mod control_plane;
+mod http_plane;
+mod router;
+mod state;
+mod tcp_plane;
+
+use cloudflare::CloudflareClient;
+use config::ServerConfig;
+use control_plane::ControlPlane;
+use http_plane::HttpPlane;
+use router::Router;
+use state::{
+    new_response_registry, new_tcp_connection_registry, PortAllocator, StreamIdGenerator,
+};
+use tcp_plane::TcpPlane;
+
+/// Tunnel server - accepts tunnel connections and routes traffic
+#[derive(Parser, Debug)]
+#[command(name = "siphon-server")]
+#[command(about = "Self-hosted reverse proxy tunnel server")]
+struct Args {
+    /// Path to configuration file
+    #[arg(short, long, default_value = "server.toml")]
+    config: String,
+}
+
+#[tokio::main]
+async fn main() -> Result<()> {
+    // Initialize logging
+    tracing_subscriber::fmt()
+        .with_env_filter(
+            EnvFilter::from_default_env()
+                .add_directive("siphon_server=info".parse()?)
+                .add_directive("siphon_common=info".parse()?),
+        )
+        .init();
+
+    let args = Args::parse();
+    tracing::info!("Starting tunnel server with config: {}", args.config);
+
+    // Load and resolve configuration (resolves all secrets)
+    let config = ServerConfig::load_and_resolve(&args.config)
+        .with_context(|| format!("Failed to load config from {}", args.config))?;
+
+    tracing::info!("Base domain: {}", config.base_domain);
+    tracing::info!("Control plane port: {}", config.control_port);
+    tracing::info!("HTTP plane port: {}", config.http_port);
+
+    // Load TLS configuration from resolved PEM content
+    let tls_config = siphon_common::load_server_config_from_pem(
+        &config.cert_pem,
+        &config.key_pem,
+        &config.ca_cert_pem,
+    )
+    .context("Failed to load TLS configuration")?;
+
+    let tls_acceptor = TlsAcceptor::from(Arc::new(tls_config));
+
+    // Create shared state
+    let router = Router::new();
+    let cloudflare = Arc::new(CloudflareClient::new(&config.cloudflare, &config.base_domain));
+    let response_registry = new_response_registry();
+    let tcp_registry = new_tcp_connection_registry();
+    let port_allocator = PortAllocator::new(config.tcp_port_range.0, config.tcp_port_range.1);
+    let stream_id_gen = StreamIdGenerator::new();
+
+    tracing::info!(
+        "TCP port range: {}-{}",
+        config.tcp_port_range.0,
+        config.tcp_port_range.1
+    );
+
+    // Create planes
+    let tcp_plane = TcpPlane::new(
+        router.clone(),
+        port_allocator,
+        tcp_registry.clone(),
+        stream_id_gen,
+    );
+
+    let control_plane = ControlPlane::new(
+        router.clone(),
+        tls_acceptor,
+        cloudflare,
+        config.base_domain.clone(),
+        response_registry.clone(),
+        tcp_plane,
+        tcp_registry,
+    );
+
+    let http_plane = HttpPlane::new(
+        router.clone(),
+        config.base_domain.clone(),
+        response_registry,
+    );
+
+    // Start servers
+    let control_addr: SocketAddr = format!("0.0.0.0:{}", config.control_port).parse()?;
+    let http_addr: SocketAddr = format!("0.0.0.0:{}", config.http_port).parse()?;
+
+    tracing::info!("Starting control plane on {}", control_addr);
+    tracing::info!("Starting HTTP plane on {}", http_addr);
+
+    // Run both planes concurrently with graceful shutdown
+    tokio::select! {
+        result = control_plane.run(control_addr) => {
+            tracing::error!("Control plane stopped: {:?}", result);
+        }
+        result = http_plane.run(http_addr) => {
+            tracing::error!("HTTP plane stopped: {:?}", result);
+        }
+        _ = shutdown_signal() => {
+            tracing::info!("Shutdown signal received, cleaning up...");
+        }
+    }
+
+    tracing::info!("Server shutdown complete");
+    Ok(())
+}
+
+/// Wait for shutdown signals (SIGTERM, SIGINT)
+async fn shutdown_signal() {
+    use tokio::signal;
+
+    let ctrl_c = async {
+        signal::ctrl_c()
+            .await
+            .expect("Failed to install Ctrl+C handler");
+    };
+
+    #[cfg(unix)]
+    let terminate = async {
+        signal::unix::signal(signal::unix::SignalKind::terminate())
+            .expect("Failed to install signal handler")
+            .recv()
+            .await;
+    };
+
+    #[cfg(not(unix))]
+    let terminate = std::future::pending::<()>();
+
+    tokio::select! {
+        _ = ctrl_c => {
+            tracing::info!("Received Ctrl+C");
+        }
+        _ = terminate => {
+            tracing::info!("Received SIGTERM");
+        }
+    }
+}

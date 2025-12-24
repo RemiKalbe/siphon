@@ -1,0 +1,89 @@
+# Siphon Server Docker Compose Example
+#
+# Usage:
+#   1. Copy this file and customize environment variables
+#   2. Mount your certificates or set them via environment
+#   3. Run: docker-compose up -d
+#
+# For production, use secrets management (Docker Swarm secrets, Kubernetes secrets, etc.)
+
+version: '3.8'
+
+services:
+  siphon-server:
+    build: .
+    # Or use pre-built image:
+    # image: ghcr.io/your-org/siphon-server:latest
+
+    container_name: siphon-server
+    restart: unless-stopped
+
+    ports:
+      # Control plane - mTLS connections from tunnel clients
+      - "4443:4443"
+      # HTTP plane - receives traffic from Cloudflare
+      - "8080:8080"
+      # TCP tunnel port range (adjust as needed)
+      - "30000-30100:30000-30100"
+
+    environment:
+      # Required configuration
+      SIPHON_BASE_DOMAIN: "tunnel.example.com"
+      SIPHON_CLOUDFLARE_ZONE_ID: "your-zone-id"
+      SIPHON_CLOUDFLARE_SERVER_IP: "your-server-public-ip"
+
+      # Secrets - use Docker secrets or mount files in production
+      # Option 1: File paths (mount certificates as volumes)
+      SIPHON_CERT_FILE: "/app/certs/server.crt"
+      SIPHON_KEY_FILE: "/app/certs/server.key"
+      SIPHON_CA_CERT_FILE: "/app/certs/ca.crt"
+
+      # Option 2: Direct PEM content (use with Docker secrets)
+      # SIPHON_CERT: ${SERVER_CERT}
+      # SIPHON_KEY: ${SERVER_KEY}
+      # SIPHON_CA_CERT: ${CA_CERT}
+
+      # Cloudflare API token (required)
+      SIPHON_CLOUDFLARE_API_TOKEN: ${CLOUDFLARE_API_TOKEN}
+
+      # Optional: Override default ports
+      # SIPHON_CONTROL_PORT: 4443
+      # SIPHON_HTTP_PORT: 8080
+      # SIPHON_TCP_PORT_START: 30000
+      # SIPHON_TCP_PORT_END: 40000
+
+      # Logging
+      RUST_LOG: "siphon_server=info,siphon_common=info"
+
+    volumes:
+      # Mount certificates directory
+      - ./certs:/app/certs:ro
+
+    # Health check
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "4443"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+    # Resource limits (adjust based on expected load)
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 512M
+        reservations:
+          cpus: '0.5'
+          memory: 128M
+
+# For Docker Swarm with secrets:
+# secrets:
+#   server_cert:
+#     external: true
+#   server_key:
+#     external: true
+#   ca_cert:
+#     external: true
+#   cloudflare_token:
+#     external: true

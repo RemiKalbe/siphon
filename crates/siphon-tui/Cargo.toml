@@ -1,0 +1,38 @@
+[package]
+name = "siphon-tui"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "TUI dashboard and setup wizard for Siphon tunnel client"
+
+[dependencies]
+siphon-protocol = { workspace = true }
+siphon-secrets = { workspace = true }
+
+# TUI
+ratatui = { workspace = true }
+crossterm = { workspace = true }
+
+# Async
+tokio = { workspace = true }
+futures-util = { workspace = true }
+
+# Data structures
+parking_lot = { workspace = true }
+
+# Time
+chrono = { workspace = true }
+
+# Serialization (for config)
+serde = { workspace = true }
+toml = { workspace = true }
+
+# Utilities
+anyhow = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+dirs = { workspace = true }
+shellexpand = { workspace = true }
+
+[dev-dependencies]
+tempfile = "3"
