@@ -47,4 +47,5 @@ api_token = "env://CLOUDFLARE_API_TOKEN"
 zone_id = "your-zone-id"
 
 # Server's public IP (for DNS A records)
-server_ip = "1.2.3.4"
+# Optional: auto-detected if not set
+# server_ip = "1.2.3.4"
