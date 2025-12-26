@@ -84,6 +84,29 @@ struct OriginCertResult {
     expires_on: String,
 }
 
+/// Response from listing Origin CA certificates
+#[derive(Debug, Deserialize)]
+struct ListOriginCertsResponse {
+    success: bool,
+    result: Option<Vec<OriginCertListItem>>,
+    errors: Vec<CloudflareApiError>,
+}
+
+/// An Origin CA certificate in the list response
+#[derive(Debug, Deserialize)]
+struct OriginCertListItem {
+    id: String,
+    hostnames: Vec<String>,
+    expires_on: String,
+}
+
+/// Response from revoking an Origin CA certificate
+#[derive(Debug, Deserialize)]
+struct RevokeOriginCertResponse {
+    success: bool,
+    errors: Vec<CloudflareApiError>,
+}
+
 #[derive(Debug, Error)]
 pub enum CloudflareError {
     #[error("HTTP request failed: {0}")]
@@ -286,5 +309,107 @@ impl CloudflareClient {
                 error_msg
             )))
         }
+    }
+
+    /// List all Origin CA certificates for the zone
+    async fn list_origin_certificates(&self) -> Result<Vec<OriginCertListItem>, CloudflareError> {
+        let response = self
+            .client
+            .get(format!(
+                "https://api.cloudflare.com/client/v4/certificates?zone_id={}",
+                self.zone_id
+            ))
+            .bearer_auth(&self.api_token)
+            .send()
+            .await?;
+
+        let result: ListOriginCertsResponse = response.json().await?;
+
+        if result.success {
+            Ok(result.result.unwrap_or_default())
+        } else {
+            let error_msg = result
+                .errors
+                .into_iter()
+                .map(|e| e.message)
+                .collect::<Vec<_>>()
+                .join(", ");
+            Err(CloudflareError::Api(format!(
+                "Failed to list Origin CA certificates: {}",
+                error_msg
+            )))
+        }
+    }
+
+    /// Revoke an Origin CA certificate by its ID
+    async fn revoke_origin_certificate(&self, cert_id: &str) -> Result<(), CloudflareError> {
+        tracing::info!("Revoking Origin CA certificate {}", cert_id);
+
+        let response = self
+            .client
+            .delete(format!(
+                "https://api.cloudflare.com/client/v4/certificates/{}",
+                cert_id
+            ))
+            .bearer_auth(&self.api_token)
+            .send()
+            .await?;
+
+        let result: RevokeOriginCertResponse = response.json().await?;
+
+        if result.success {
+            tracing::info!("Revoked Origin CA certificate {}", cert_id);
+            Ok(())
+        } else {
+            let error_msg = result
+                .errors
+                .into_iter()
+                .map(|e| e.message)
+                .collect::<Vec<_>>()
+                .join(", ");
+            Err(CloudflareError::Api(format!(
+                "Failed to revoke certificate {}: {}",
+                cert_id, error_msg
+            )))
+        }
+    }
+
+    /// Clean up old Origin CA certificates for this domain
+    ///
+    /// This revokes any existing Origin CA certificates that match our base domain
+    /// (either *.base_domain or base_domain). Should be called before creating
+    /// a new certificate to avoid accumulating old ones.
+    pub async fn cleanup_old_origin_certificates(&self) -> Result<u32, CloudflareError> {
+        let wildcard = format!("*.{}", self.base_domain);
+        let certs = self.list_origin_certificates().await?;
+
+        let mut revoked = 0;
+        for cert in certs {
+            // Check if this certificate is for our domain
+            let matches = cert.hostnames.iter().any(|h| {
+                h == &self.base_domain || h == &wildcard
+            });
+
+            if matches {
+                tracing::info!(
+                    "Found old Origin CA certificate {} for {:?}, expires {}",
+                    cert.id,
+                    cert.hostnames,
+                    cert.expires_on
+                );
+
+                if let Err(e) = self.revoke_origin_certificate(&cert.id).await {
+                    tracing::warn!("Failed to revoke certificate {}: {}", cert.id, e);
+                } else {
+                    revoked += 1;
+                }
+            }
+        }
+
+        if revoked > 0 {
+            tracing::info!("Revoked {} old Origin CA certificate(s)", revoked);
+        }
+
+        Ok(revoked)
     }
 }

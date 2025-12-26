@@ -115,6 +115,11 @@ async fn main() -> Result<()> {
         } else if config.cloudflare.auto_origin_ca {
             tracing::info!("HTTP plane TLS: generating Cloudflare Origin CA certificate...");
 
+            // Clean up old certificates first
+            if let Err(e) = cloudflare.cleanup_old_origin_certificates().await {
+                tracing::warn!("Failed to cleanup old Origin CA certificates: {}", e);
+            }
+
             // Generate Origin CA certificate
             let origin_cert = cloudflare
                 .create_origin_certificate(365) // 1 year validity
