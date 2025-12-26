@@ -271,7 +271,7 @@ impl ServerConfig {
         };
 
         // Auto Origin CA: ENV > config > default false
-        let auto_origin_ca = get_env_bool("AUTO_ORIGIN_CA")
+        let auto_origin_ca = get_env_bool("CLOUDFLARE_AUTO_ORIGIN_CA")
             .or(cf_config.auto_origin_ca)
             .unwrap_or(false);
 
