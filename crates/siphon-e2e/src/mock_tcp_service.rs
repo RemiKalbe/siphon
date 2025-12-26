@@ -55,7 +55,8 @@ impl MockTcpService {
             .expect("Failed to bind mock TCP service");
         let addr = listener.local_addr().unwrap();
 
-        let connections: Arc<RwLock<Vec<RecordedTcpConnection>>> = Arc::new(RwLock::new(Vec::new()));
+        let connections: Arc<RwLock<Vec<RecordedTcpConnection>>> =
+            Arc::new(RwLock::new(Vec::new()));
         let mode = Arc::new(RwLock::new(mode));
 
         let (shutdown_tx, mut shutdown_rx) = mpsc::channel::<()>(1);

@@ -150,7 +150,10 @@ async fn test_tcp_tunnel_multiple_connections() {
         tokio::time::sleep(Duration::from_millis(50)).await;
 
         let msg = format!("Message {}", i);
-        stream.write_all(msg.as_bytes()).await.expect("Failed to write");
+        stream
+            .write_all(msg.as_bytes())
+            .await
+            .expect("Failed to write");
         stream.flush().await.expect("Failed to flush");
 
         let mut buf = [0u8; 64];
@@ -255,7 +258,10 @@ async fn test_tcp_tunnel_bidirectional() {
     // Send and receive multiple times
     for i in 0..5 {
         let msg = format!("Ping {}", i);
-        stream.write_all(msg.as_bytes()).await.expect("Failed to write");
+        stream
+            .write_all(msg.as_bytes())
+            .await
+            .expect("Failed to write");
         stream.flush().await.expect("Failed to flush");
 
         let mut buf = [0u8; 64];

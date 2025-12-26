@@ -364,13 +364,17 @@ async fn handle_message(
                         }
 
                         // Send close
-                        let _ = response_tx.send(ClientMessage::TcpClose { stream_id }).await;
+                        let _ = response_tx
+                            .send(ClientMessage::TcpClose { stream_id })
+                            .await;
                         tcp_connections.write().remove(&stream_id);
                     }
                     Err(e) => {
                         tracing::error!("Failed to connect to local service: {}", e);
                         // Send close to indicate connection failed
-                        let _ = response_tx.send(ClientMessage::TcpClose { stream_id }).await;
+                        let _ = response_tx
+                            .send(ClientMessage::TcpClose { stream_id })
+                            .await;
                     }
                 }
             });

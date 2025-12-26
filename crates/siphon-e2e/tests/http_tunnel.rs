@@ -54,7 +54,12 @@ async fn test_http_tunnel_basic_get() {
 
     // 6. Verify mock received the request
     let requests = mock.get_requests();
-    assert_eq!(requests.len(), 1, "Expected 1 request, got {}", requests.len());
+    assert_eq!(
+        requests.len(),
+        1,
+        "Expected 1 request, got {}",
+        requests.len()
+    );
     assert_eq!(requests[0].method, "GET");
     assert_eq!(requests[0].uri, "/test-path");
 
@@ -144,7 +149,12 @@ async fn test_http_tunnel_multiple_requests() {
 
     // Verify all requests were forwarded
     let requests = mock.get_requests();
-    assert_eq!(requests.len(), 5, "Expected 5 requests, got {}", requests.len());
+    assert_eq!(
+        requests.len(),
+        5,
+        "Expected 5 requests, got {}",
+        requests.len()
+    );
 
     for (i, req) in requests.iter().enumerate() {
         assert_eq!(req.uri, format!("/request/{}", i));
