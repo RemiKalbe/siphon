@@ -67,6 +67,11 @@ pub struct CloudflareConfig {
 
     /// Server's CNAME target (for CNAME records) - use for platforms like Railway
     pub server_cname: Option<String>,
+
+    /// Automatically generate Origin CA certificate for Cloudflare Full (Strict) mode
+    /// When enabled, the server will request a certificate from Cloudflare's Origin CA
+    /// and use it for HTTPS on the HTTP plane. No manual certificate setup needed.
+    pub auto_origin_ca: Option<bool>,
 }
 
 /// Resolved server configuration with actual secret values
@@ -101,6 +106,8 @@ pub struct ResolvedCloudflareConfig {
     pub api_token: String,
     pub zone_id: String,
     pub dns_target: DnsTarget,
+    /// Whether to auto-generate Origin CA certificate
+    pub auto_origin_ca: bool,
 }
 
 /// Get environment variable with prefix
@@ -111,6 +118,11 @@ fn get_env(name: &str) -> Option<String> {
 /// Get environment variable as u16
 fn get_env_u16(name: &str) -> Option<u16> {
     get_env(name).and_then(|v| v.parse().ok())
+}
+
+/// Get environment variable as bool
+fn get_env_bool(name: &str) -> Option<bool> {
+    get_env(name).map(|v| matches!(v.to_lowercase().as_str(), "true" | "1" | "yes"))
 }
 
 /// Auto-detect public IP address using external services
@@ -258,6 +270,11 @@ impl ServerConfig {
             }
         };
 
+        // Auto Origin CA: ENV > config > default false
+        let auto_origin_ca = get_env_bool("AUTO_ORIGIN_CA")
+            .or(cf_config.auto_origin_ca)
+            .unwrap_or(false);
+
         // TCP port range: ENV > config > default 30000-40000
         let tcp_port_start = get_env_u16("TCP_PORT_START")
             .or(self.tcp_port_range.map(|r| r.0))
@@ -340,6 +357,7 @@ impl ServerConfig {
                 api_token,
                 zone_id: cf_zone_id,
                 dns_target,
+                auto_origin_ca,
             },
             tcp_port_range: (tcp_port_start, tcp_port_end),
             http_cert_pem,

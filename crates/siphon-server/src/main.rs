@@ -97,7 +97,7 @@ async fn main() -> Result<()> {
     let control_plane = ControlPlane::new(
         router.clone(),
         tls_acceptor,
-        cloudflare,
+        cloudflare.clone(),
         config.base_domain.clone(),
         response_registry.clone(),
         tcp_plane,
@@ -105,12 +105,35 @@ async fn main() -> Result<()> {
     );
 
     // Load HTTP plane TLS config if provided (for Cloudflare Full Strict mode)
+    // Priority: manual certs > auto Origin CA > no TLS
     let http_tls_acceptor =
         if let (Some(cert), Some(key)) = (&config.http_cert_pem, &config.http_key_pem) {
+            tracing::info!("HTTP plane TLS: using provided certificates");
             let http_tls_config = siphon_common::load_server_config_no_client_auth(cert, key)
                 .context("Failed to load HTTP plane TLS configuration")?;
             Some(TlsAcceptor::from(Arc::new(http_tls_config)))
+        } else if config.cloudflare.auto_origin_ca {
+            tracing::info!("HTTP plane TLS: generating Cloudflare Origin CA certificate...");
+
+            // Generate Origin CA certificate
+            let origin_cert = cloudflare
+                .create_origin_certificate(365) // 1 year validity
+                .await
+                .context("Failed to create Origin CA certificate")?;
+
+            tracing::info!(
+                "Origin CA certificate created, expires: {}",
+                origin_cert.expires_on
+            );
+
+            let http_tls_config = siphon_common::load_server_config_no_client_auth(
+                &origin_cert.certificate,
+                &origin_cert.private_key,
+            )
+            .context("Failed to load Origin CA TLS configuration")?;
+            Some(TlsAcceptor::from(Arc::new(http_tls_config)))
         } else {
+            tracing::info!("HTTP plane TLS: disabled (plain HTTP)");
             None
         };
 

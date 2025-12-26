@@ -6,8 +6,8 @@ use ratatui::{
     symbols,
     text::{Line, Span},
     widgets::{
-        Axis, Bar, BarChart, BarGroup, Block, Borders, Cell, Chart, Dataset, GraphType, Paragraph,
-        Row, Sparkline, Table,
+        Axis, Bar, BarChart, BarGroup, Block, Borders, Cell, Chart, Clear, Dataset, GraphType,
+        Paragraph, Row, Sparkline, Table,
     },
     Frame,
 };
@@ -79,14 +79,18 @@ impl Dashboard {
 
             let tunnel_type = format!("{:?}", info.tunnel_type);
 
+            // Create clickable hyperlink for the URL
+            let hyperlink_url = make_hyperlink(&info.url, &info.url);
+
             let text = vec![
                 Line::from(vec![
                     Span::styled("URL: ", Style::default().fg(Color::Gray)),
                     Span::styled(
-                        &info.url,
+                        hyperlink_url,
                         Style::default()
                             .fg(Color::Green)
-                            .add_modifier(Modifier::BOLD),
+                            .add_modifier(Modifier::BOLD)
+                            .add_modifier(Modifier::UNDERLINED),
                     ),
                 ]),
                 Line::from(vec![
@@ -153,6 +157,8 @@ impl Dashboard {
             .max(max_val)
             .style(Style::default().fg(Color::Cyan));
 
+        // Clear area first to prevent rendering artifacts
+        frame.render_widget(Clear, chunks[0]);
         frame.render_widget(sparkline, chunks[0]);
 
         // Stats line
@@ -231,9 +237,15 @@ impl Dashboard {
             Line::from(format!("{}ms", max_time as u64)),
         ];
         let chart = Chart::new(datasets)
-            .x_axis(Axis::default().bounds([0.0, 60.0]))
+            .x_axis(
+                Axis::default()
+                    .bounds([0.0, 60.0])
+                    .labels(vec![Line::from("")]),
+            )
             .y_axis(Axis::default().bounds([0.0, max_time]).labels(y_labels));
 
+        // Clear the chart area first to prevent rendering artifacts
+        frame.render_widget(Clear, chunks[0]);
         frame.render_widget(chart, chunks[0]);
 
         // Stats
@@ -335,6 +347,7 @@ impl Dashboard {
             .data(&in_data)
             .max(in_max)
             .style(Style::default().fg(Color::Cyan));
+        frame.render_widget(Clear, in_sparkline_area);
         frame.render_widget(in_sparkline, in_sparkline_area);
 
         // Bytes Out sparkline
@@ -358,6 +371,7 @@ impl Dashboard {
             .data(&out_data)
             .max(out_max)
             .style(Style::default().fg(Color::Magenta));
+        frame.render_widget(Clear, out_sparkline_area);
         frame.render_widget(out_sparkline, out_sparkline_area);
 
         // Stats
@@ -443,6 +457,12 @@ impl Dashboard {
 }
 
 // Helper functions
+
+/// Create an OSC 8 hyperlink that works in supported terminal emulators
+/// Format: \x1b]8;;URL\x1b\\TEXT\x1b]8;;\x1b\\
+fn make_hyperlink(url: &str, text: &str) -> String {
+    format!("\x1b]8;;{}\x1b\\{}\x1b]8;;\x1b\\", url, text)
+}
 
 fn format_duration(d: Duration) -> String {
     let secs = d.as_secs();

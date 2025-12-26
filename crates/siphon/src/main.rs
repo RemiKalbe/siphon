@@ -325,6 +325,10 @@ async fn run_cli_mode(
                         break;
                     }
                     Err(e) => {
+                        if let Some(tls_diagnostic) = analyze_tls_error(&e) {
+                            display_tls_error(tls_diagnostic.as_ref());
+                            return Err(e);
+                        }
                         tracing::error!("Tunnel error: {}", e);
                         tracing::info!("Reconnecting in 5 seconds...");
                         tokio::time::sleep(Duration::from_secs(5)).await;
@@ -381,6 +385,13 @@ async fn run_tui_mode(
                         break;
                     }
                     Err(e) => {
+                        if let Some(tls_diagnostic) = analyze_tls_error(&e) {
+                            metrics.record_error(format!("Fatal: {}", tls_diagnostic));
+                            // Give TUI a moment to display the error, then exit
+                            tokio::time::sleep(Duration::from_millis(500)).await;
+                            display_tls_error(tls_diagnostic.as_ref());
+                            break;
+                        }
                         metrics.record_error(format!("Tunnel error: {}", e));
                         tokio::time::sleep(Duration::from_secs(5)).await;
                     }
@@ -401,6 +412,287 @@ async fn run_tui_mode(
     let _ = tui_handle.await;
 
     Ok(())
+}
+
+/// SAN mismatch diagnostic with detailed information
+#[derive(Debug, miette::Diagnostic)]
+#[diagnostic(
+    code(siphon::tls::san_mismatch),
+    severity(error),
+    url("https://github.com/remikalbe/siphon#certificate-setup")
+)]
+struct SanMismatchDiagnostic {
+    expected: String,
+    presented: Vec<String>,
+
+    #[help]
+    help: String,
+}
+
+impl std::fmt::Display for SanMismatchDiagnostic {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        writeln!(f, "Certificate hostname mismatch")?;
+        writeln!(f)?;
+        writeln!(f, "  Expected hostname: {}", self.expected)?;
+        writeln!(f, "  Certificate is valid for:")?;
+        if self.presented.is_empty() {
+            writeln!(f, "    (no SANs found in certificate)")?;
+        } else {
+            for name in &self.presented {
+                writeln!(f, "    - {}", name)?;
+            }
+        }
+        Ok(())
+    }
+}
+
+impl std::error::Error for SanMismatchDiagnostic {}
+
+/// Certificate expired diagnostic
+#[derive(Debug, miette::Diagnostic, thiserror::Error)]
+#[error("Certificate has expired")]
+#[diagnostic(code(siphon::tls::expired), severity(error))]
+struct ExpiredCertDiagnostic {
+    #[help]
+    help: String,
+}
+
+/// Unknown issuer diagnostic
+#[derive(Debug, miette::Diagnostic, thiserror::Error)]
+#[error("Certificate issuer not trusted")]
+#[diagnostic(code(siphon::tls::unknown_issuer), severity(error))]
+struct UnknownIssuerDiagnostic {
+    #[help]
+    help: String,
+}
+
+/// Generic TLS diagnostic for other errors
+#[derive(Debug, miette::Diagnostic, thiserror::Error)]
+#[error("{message}")]
+#[diagnostic(code(siphon::tls::error), severity(error))]
+struct GenericTlsDiagnostic {
+    message: String,
+    #[help]
+    help: String,
+}
+
+/// Analyze an error and extract detailed TLS/certificate information if applicable
+fn analyze_tls_error(error: &anyhow::Error) -> Option<Box<dyn miette::Diagnostic + Send + Sync>> {
+    // Check the error chain for rustls errors
+    for cause in error.chain() {
+        if let Some(rustls_err) = cause.downcast_ref::<rustls::Error>() {
+            return Some(analyze_rustls_error(rustls_err));
+        }
+    }
+
+    // Fallback: check error string for TLS-related patterns
+    let error_debug = format!("{:?}", error);
+    let error_display = format!("{}", error);
+
+    if error_debug.contains("InvalidCertificate")
+        || error_debug.contains("CertificateError")
+        || error_debug.contains("AlertReceived")
+        || error_debug.contains("HandshakeFailure")
+    {
+        return Some(Box::new(GenericTlsDiagnostic {
+            message: format!("TLS handshake failed: {}", error_display),
+            help: "Check that your certificate matches the server's expectations.".to_string(),
+        }));
+    }
+
+    None
+}
+
+/// Extract detailed information from a rustls::Error
+fn analyze_rustls_error(err: &rustls::Error) -> Box<dyn miette::Diagnostic + Send + Sync> {
+    use rustls::Error;
+
+    match err {
+        Error::InvalidCertificate(cert_err) => analyze_certificate_error(cert_err),
+        Error::NoCertificatesPresented => Box::new(GenericTlsDiagnostic {
+            message: "No client certificate was presented".to_string(),
+            help: "Ensure your certificate file path is correct and the file exists.".to_string(),
+        }),
+        Error::AlertReceived(alert) => Box::new(GenericTlsDiagnostic {
+            message: format!("Server rejected connection with TLS alert: {:?}", alert),
+            help: "The server doesn't trust your certificate. Check that it was signed by the correct CA.".to_string(),
+        }),
+        Error::InvalidCertRevocationList(crl_err) => Box::new(GenericTlsDiagnostic {
+            message: format!("Invalid certificate revocation list: {:?}", crl_err),
+            help: "The CRL file is malformed or corrupted.".to_string(),
+        }),
+        Error::DecryptError => Box::new(GenericTlsDiagnostic {
+            message: "TLS decryption failed".to_string(),
+            help: "The TLS session was corrupted. This may indicate a network issue or misconfigured proxy.".to_string(),
+        }),
+        Error::EncryptError => Box::new(GenericTlsDiagnostic {
+            message: "TLS encryption failed".to_string(),
+            help: "Failed to encrypt TLS message. This may indicate a configuration issue.".to_string(),
+        }),
+        Error::PeerIncompatible(reason) => Box::new(GenericTlsDiagnostic {
+            message: format!("Server is incompatible: {:?}", reason),
+            help: "The server doesn't support the required TLS version or features.".to_string(),
+        }),
+        Error::PeerMisbehaved(reason) => Box::new(GenericTlsDiagnostic {
+            message: format!("Server protocol violation: {:?}", reason),
+            help: "The server sent invalid TLS data. This may indicate a misconfigured server or MITM attack.".to_string(),
+        }),
+        Error::InvalidMessage(reason) => Box::new(GenericTlsDiagnostic {
+            message: format!("Invalid TLS message: {:?}", reason),
+            help: "The server sent malformed TLS data.".to_string(),
+        }),
+        Error::UnsupportedNameType => Box::new(GenericTlsDiagnostic {
+            message: "Unsupported server name type".to_string(),
+            help: "The server name format is not supported. Use a DNS hostname.".to_string(),
+        }),
+        Error::FailedToGetCurrentTime => Box::new(GenericTlsDiagnostic {
+            message: "Failed to get system time".to_string(),
+            help: "Certificate validation requires accurate system time. Check your system clock.".to_string(),
+        }),
+        Error::FailedToGetRandomBytes => Box::new(GenericTlsDiagnostic {
+            message: "Failed to generate random bytes".to_string(),
+            help: "System random number generator failed. This is a system-level issue.".to_string(),
+        }),
+        Error::General(msg) => Box::new(GenericTlsDiagnostic {
+            message: format!("TLS error: {}", msg),
+            help: "An unexpected TLS error occurred.".to_string(),
+        }),
+        _ => Box::new(GenericTlsDiagnostic {
+            message: format!("TLS error: {}", err),
+            help: "Check your TLS configuration and certificates.".to_string(),
+        }),
+    }
+}
+
+/// Extract detailed information from a CertificateError
+fn analyze_certificate_error(
+    err: &rustls::CertificateError,
+) -> Box<dyn miette::Diagnostic + Send + Sync> {
+    use rustls::CertificateError;
+
+    match err {
+        CertificateError::NotValidForNameContext { expected, presented } => {
+            use rustls::pki_types::ServerName;
+
+            let expected_str = match expected {
+                ServerName::DnsName(name) => name.as_ref().to_string(),
+                ServerName::IpAddress(ip) => format!("{:?}", ip),
+                _ => format!("{:?}", expected),
+            };
+
+            Box::new(SanMismatchDiagnostic {
+                expected: expected_str,
+                presented: presented.iter().map(|s| s.to_string()).collect(),
+                help: "Regenerate your certificate with a SAN that includes the server hostname."
+                    .to_string(),
+            })
+        }
+        CertificateError::NotValidForName => Box::new(GenericTlsDiagnostic {
+            message: "Certificate hostname mismatch".to_string(),
+            help: "The certificate's Subject Alternative Names (SANs) must include the server hostname.".to_string(),
+        }),
+        CertificateError::ExpiredContext { time, not_after } => Box::new(ExpiredCertDiagnostic {
+            help: format!(
+                "Certificate expired at {:?} (current time: {:?}). Renew the certificate.",
+                not_after, time
+            ),
+        }),
+        CertificateError::Expired => Box::new(ExpiredCertDiagnostic {
+            help: "Renew the certificate to fix this issue.".to_string(),
+        }),
+        CertificateError::NotValidYetContext { time, not_before } => {
+            Box::new(GenericTlsDiagnostic {
+                message: "Certificate is not yet valid".to_string(),
+                help: format!(
+                    "Certificate valid from {:?} (current time: {:?}). Check your system clock.",
+                    not_before, time
+                ),
+            })
+        }
+        CertificateError::NotValidYet => Box::new(GenericTlsDiagnostic {
+            message: "Certificate is not yet valid".to_string(),
+            help: "The certificate's notBefore date is in the future. Check your system clock."
+                .to_string(),
+        }),
+        CertificateError::Revoked => Box::new(GenericTlsDiagnostic {
+            message: "Certificate has been revoked".to_string(),
+            help: "This certificate has been revoked and cannot be used. Generate a new certificate.".to_string(),
+        }),
+        CertificateError::UnknownIssuer => Box::new(UnknownIssuerDiagnostic {
+            help: "The certificate was not signed by a trusted CA. Ensure you're using the correct CA certificate with --ca.".to_string(),
+        }),
+        CertificateError::BadSignature => Box::new(GenericTlsDiagnostic {
+            message: "Certificate signature is invalid".to_string(),
+            help: "The certificate may be corrupted or was not signed by the expected CA."
+                .to_string(),
+        }),
+        CertificateError::BadEncoding => Box::new(GenericTlsDiagnostic {
+            message: "Certificate encoding is invalid".to_string(),
+            help: "Ensure the certificate file is valid PEM format.".to_string(),
+        }),
+        CertificateError::UnhandledCriticalExtension => Box::new(GenericTlsDiagnostic {
+            message: "Certificate has unhandled critical extension".to_string(),
+            help: "The certificate contains a critical X.509 extension that is not supported.".to_string(),
+        }),
+        CertificateError::UnknownRevocationStatus => Box::new(GenericTlsDiagnostic {
+            message: "Certificate revocation status unknown".to_string(),
+            help: "Could not determine if the certificate has been revoked. Check OCSP/CRL availability.".to_string(),
+        }),
+        CertificateError::ExpiredRevocationList => Box::new(GenericTlsDiagnostic {
+            message: "Certificate revocation list has expired".to_string(),
+            help: "The CRL used to check revocation status has expired. Update the CRL.".to_string(),
+        }),
+        CertificateError::InvalidPurpose => Box::new(GenericTlsDiagnostic {
+            message: "Certificate purpose is invalid".to_string(),
+            help: "The certificate's Extended Key Usage doesn't allow this use. Check the certificate was generated for TLS client authentication.".to_string(),
+        }),
+        CertificateError::ApplicationVerificationFailure => Box::new(GenericTlsDiagnostic {
+            message: "Application-level certificate verification failed".to_string(),
+            help: "The certificate was rejected by custom verification logic.".to_string(),
+        }),
+        _ => Box::new(GenericTlsDiagnostic {
+            message: format!("Certificate validation failed: {:?}", err),
+            help: "Check your certificate configuration.".to_string(),
+        }),
+    }
+}
+
+/// Display a TLS error using miette's pretty printing
+fn display_tls_error(diagnostic: &dyn miette::Diagnostic) {
+    use std::fmt::Write;
+
+    // Build a formatted error message
+    let mut output = String::new();
+
+    // Header
+    writeln!(output).unwrap();
+    writeln!(output, "  × TLS Connection Failed").unwrap();
+    writeln!(output).unwrap();
+
+    // Error code if present
+    if let Some(code) = diagnostic.code() {
+        writeln!(output, "  Error: {}", code).unwrap();
+    }
+
+    // Main message
+    writeln!(output, "  {}", diagnostic).unwrap();
+
+    // Help text if present
+    if let Some(help) = diagnostic.help() {
+        writeln!(output).unwrap();
+        writeln!(output, "  help: {}", help).unwrap();
+    }
+
+    // URL if present
+    if let Some(url) = diagnostic.url() {
+        writeln!(output).unwrap();
+        writeln!(output, "  docs: {}", url).unwrap();
+    }
+
+    writeln!(output).unwrap();
+    writeln!(output, "  This error cannot be resolved by reconnecting.").unwrap();
+
+    eprintln!("{}", output);
 }
 
 async fn shutdown_signal() {

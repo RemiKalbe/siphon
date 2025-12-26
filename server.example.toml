@@ -34,14 +34,21 @@ tcp_port_range = [30000, 40000]
 
 # HTTP plane TLS (optional - enables HTTPS for Cloudflare Full Strict mode)
 # If not set, HTTP plane accepts plain HTTP (suitable for Cloudflare Flexible/Full mode)
+#
+# Option 1: Manual certificates
 # http_cert = "/etc/tunnel/origin.crt"
 # http_key = "/etc/tunnel/origin.key"
-# You can use a Cloudflare Origin CA certificate (free, trusted only by Cloudflare)
+#
+# Option 2: Automatic Origin CA (recommended - set auto_origin_ca in [cloudflare] section)
+# The server will automatically generate a Cloudflare Origin CA certificate on startup.
+# No manual certificate management needed!
 
 [cloudflare]
-# API token with DNS edit permissions
+# API token with required permissions
 # Create at: https://dash.cloudflare.com/profile/api-tokens
-# Required permissions: Zone:DNS:Edit
+# Required permissions:
+#   - Zone:DNS:Edit (for creating tunnel DNS records)
+#   - SSL and Certificates:Edit (only if using auto_origin_ca)
 #
 # Recommended: Store securely using one of:
 #   - 1Password: "op://Private/Cloudflare/tunnel-api-token"
@@ -59,3 +66,12 @@ zone_id = "your-zone-id"
 #
 # Use server_cname for platforms like Railway/Render/Fly.io (creates CNAME records):
 # server_cname = "myapp.up.railway.app"
+
+# Automatic Origin CA certificate generation (recommended for Cloudflare Full Strict mode)
+# When enabled, the server automatically:
+#   1. Generates a private key and CSR
+#   2. Requests a certificate from Cloudflare's Origin CA
+#   3. Uses the certificate for HTTPS on the HTTP plane
+# This eliminates the need to manually configure http_cert/http_key
+# The certificate is valid for *.base_domain and base_domain
+auto_origin_ca = true

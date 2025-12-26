@@ -338,13 +338,27 @@ impl MetricsCollector {
             last_error: state.last_error.clone(),
             recent_requests: state.recent_requests.iter().cloned().collect(),
 
-            // Graph data
-            request_rate_history: state.request_rate_history.iter().copied().collect(),
-            response_time_p50_history: state.response_time_p50_history.iter().copied().collect(),
-            response_time_p99_history: state.response_time_p99_history.iter().copied().collect(),
-            bytes_in_rate_history: state.bytes_in_rate_history.iter().copied().collect(),
-            bytes_out_rate_history: state.bytes_out_rate_history.iter().copied().collect(),
+            // Graph data - pad to fixed HISTORY_SIZE for consistent chart rendering
+            request_rate_history: pad_history(&state.request_rate_history, HISTORY_SIZE),
+            response_time_p50_history: pad_history(&state.response_time_p50_history, HISTORY_SIZE),
+            response_time_p99_history: pad_history(&state.response_time_p99_history, HISTORY_SIZE),
+            bytes_in_rate_history: pad_history(&state.bytes_in_rate_history, HISTORY_SIZE),
+            bytes_out_rate_history: pad_history(&state.bytes_out_rate_history, HISTORY_SIZE),
         }
+    }
+}
+
+/// Pad history data to a fixed size with leading zeros for consistent chart rendering
+fn pad_history(data: &VecDeque<u64>, size: usize) -> Vec<u64> {
+    let current_len = data.len();
+    if current_len >= size {
+        // Already at or exceeds target size, just convert
+        data.iter().copied().collect()
+    } else {
+        // Pad with zeros at the beginning, so newest data is on the right
+        let mut result = vec![0u64; size - current_len];
+        result.extend(data.iter().copied());
+        result
     }
 }
 

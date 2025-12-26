@@ -1,16 +1,28 @@
+use rcgen::{CertificateParams, KeyPair};
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
 use crate::config::{DnsTarget, ResolvedCloudflareConfig};
 
-/// Cloudflare API client for DNS management
+/// Cloudflare API client for DNS and Origin CA management
 pub struct CloudflareClient {
     client: Client,
     api_token: String,
     zone_id: String,
     dns_target: DnsTarget,
     base_domain: String,
+}
+
+/// Origin CA certificate and private key
+#[derive(Debug, Clone)]
+pub struct OriginCertificate {
+    /// PEM-encoded certificate
+    pub certificate: String,
+    /// PEM-encoded private key
+    pub private_key: String,
+    /// Certificate expiration date
+    pub expires_on: String,
 }
 
 #[derive(Debug, Serialize)]
@@ -43,6 +55,33 @@ struct CloudflareApiError {
 #[derive(Debug, Deserialize)]
 struct DeleteResponse {
     success: bool,
+}
+
+/// Request body for creating an Origin CA certificate
+#[derive(Debug, Serialize)]
+struct CreateOriginCertRequest {
+    /// PEM-encoded CSR
+    csr: String,
+    /// Hostnames to include in the certificate
+    hostnames: Vec<String>,
+    /// Certificate type: "origin-rsa" or "origin-ecc"
+    request_type: String,
+    /// Validity period in days (7, 30, 90, 365, 730, 1095, or 5475)
+    requested_validity: u32,
+}
+
+/// Response from Origin CA certificate creation
+#[derive(Debug, Deserialize)]
+struct OriginCertResponse {
+    success: bool,
+    result: Option<OriginCertResult>,
+    errors: Vec<CloudflareApiError>,
+}
+
+#[derive(Debug, Deserialize)]
+struct OriginCertResult {
+    certificate: String,
+    expires_on: String,
 }
 
 #[derive(Debug, Error)]
@@ -152,6 +191,99 @@ impl CloudflareClient {
             Err(CloudflareError::Api(format!(
                 "Failed to delete record {}",
                 record_id
+            )))
+        }
+    }
+
+    /// Create an Origin CA certificate for the base domain
+    ///
+    /// This generates a private key and CSR locally, then requests a certificate
+    /// from Cloudflare's Origin CA. The certificate is valid for HTTPS connections
+    /// from Cloudflare to this origin server (Full Strict mode).
+    ///
+    /// # Arguments
+    /// * `validity_days` - Certificate validity in days (default: 365)
+    ///
+    /// # Returns
+    /// An OriginCertificate containing the certificate and private key in PEM format
+    pub async fn create_origin_certificate(
+        &self,
+        validity_days: u32,
+    ) -> Result<OriginCertificate, CloudflareError> {
+        tracing::info!(
+            "Creating Origin CA certificate for *.{} (valid for {} days)",
+            self.base_domain,
+            validity_days
+        );
+
+        // Generate a new key pair
+        let key_pair = KeyPair::generate().map_err(|e| {
+            CloudflareError::Api(format!("Failed to generate key pair: {}", e))
+        })?;
+
+        // Create certificate parameters for CSR
+        let mut params = CertificateParams::default();
+        params.distinguished_name = rcgen::DistinguishedName::new();
+
+        // Generate CSR
+        let csr = params
+            .serialize_request(&key_pair)
+            .map_err(|e| CloudflareError::Api(format!("Failed to generate CSR: {}", e)))?;
+
+        let csr_pem = csr.pem().map_err(|e| {
+            CloudflareError::Api(format!("Failed to encode CSR as PEM: {}", e))
+        })?;
+
+        // Hostnames: wildcard + base domain
+        let hostnames = vec![
+            format!("*.{}", self.base_domain),
+            self.base_domain.clone(),
+        ];
+
+        tracing::debug!("Requesting Origin CA certificate for hostnames: {:?}", hostnames);
+
+        // Request certificate from Cloudflare Origin CA
+        let response = self
+            .client
+            .post("https://api.cloudflare.com/client/v4/certificates")
+            .bearer_auth(&self.api_token)
+            .json(&CreateOriginCertRequest {
+                csr: csr_pem,
+                hostnames,
+                request_type: "origin-rsa".to_string(),
+                requested_validity: validity_days,
+            })
+            .send()
+            .await?;
+
+        let result: OriginCertResponse = response.json().await?;
+
+        if result.success {
+            let cert_result = result
+                .result
+                .ok_or_else(|| CloudflareError::Api("No certificate in response".to_string()))?;
+
+            tracing::info!(
+                "Created Origin CA certificate for *.{}, expires: {}",
+                self.base_domain,
+                cert_result.expires_on
+            );
+
+            Ok(OriginCertificate {
+                certificate: cert_result.certificate,
+                private_key: key_pair.serialize_pem(),
+                expires_on: cert_result.expires_on,
+            })
+        } else {
+            let error_msg = result
+                .errors
+                .into_iter()
+                .map(|e| e.message)
+                .collect::<Vec<_>>()
+                .join(", ");
+            Err(CloudflareError::Api(format!(
+                "Failed to create Origin CA certificate: {}",
+                error_msg
             )))
         }
     }
