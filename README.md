@@ -165,7 +165,7 @@ export SIPHON_CLOUDFLARE_AUTO_ORIGIN_CA="true"
 This requires an additional API token permission: **Zone.SSL and Certificates (Edit)**
 
 On startup, the server will:
-1. Revoke any existing Origin CA certificates for your domain
+1. Revoke any existing Origin CA certificates matching `*.{SIPHON_BASE_DOMAIN}` or `{SIPHON_BASE_DOMAIN}` (other certificates in your zone are not affected)
 2. Generate a new ECDSA key and CSR
 3. Request a certificate from Cloudflare's Origin CA (valid for 1 year)
 4. Use it for HTTPS on the HTTP data plane
