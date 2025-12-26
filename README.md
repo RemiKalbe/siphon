@@ -67,8 +67,11 @@ Configure via environment variables:
 
 ```bash
 export SIPHON_BASE_DOMAIN="tunnel.example.com"
-export SIPHON_CLOUDFLARE_API_TOKEN="your-token"
 export SIPHON_CLOUDFLARE_ZONE_ID="your-zone-id"
+
+# Cloudflare API token - create at https://dash.cloudflare.com/profile/api-tokens
+# Required permission: Zone.DNS (Edit)
+export SIPHON_CLOUDFLARE_API_TOKEN="your-token"
 
 # Certificates - multiple formats supported:
 export SIPHON_CERT="file:///path/to/server.crt"
@@ -149,7 +152,27 @@ See [server.example.toml](server.example.toml) for configuration options.
 
 ### Cloudflare Full (Strict) SSL
 
-To enable HTTPS on the HTTP data plane (required for Cloudflare Full Strict mode):
+To enable HTTPS on the HTTP data plane (required for Cloudflare Full Strict mode), you have two options:
+
+#### Option 1: Automatic Origin CA (Recommended)
+
+The server can automatically generate and manage Cloudflare Origin CA certificates:
+
+```bash
+export SIPHON_CLOUDFLARE_AUTO_ORIGIN_CA="true"
+```
+
+This requires an additional API token permission: **Zone.SSL and Certificates (Edit)**
+
+On startup, the server will:
+1. Revoke any existing Origin CA certificates for your domain
+2. Generate a new ECDSA key and CSR
+3. Request a certificate from Cloudflare's Origin CA (valid for 1 year)
+4. Use it for HTTPS on the HTTP data plane
+
+#### Option 2: Manual Certificates
+
+Provide your own certificates:
 
 ```bash
 export SIPHON_HTTP_CERT="file:///path/to/origin.crt"
