@@ -317,19 +317,19 @@ impl Dashboard {
         let bars = vec![
             Bar::default()
                 .value(status.code_2xx)
-                .label("2xx".into())
+                .label("2xx")
                 .style(Style::default().fg(Color::Green)),
             Bar::default()
                 .value(status.code_3xx)
-                .label("3xx".into())
+                .label("3xx")
                 .style(Style::default().fg(Color::Blue)),
             Bar::default()
                 .value(status.code_4xx)
-                .label("4xx".into())
+                .label("4xx")
                 .style(Style::default().fg(Color::Yellow)),
             Bar::default()
                 .value(status.code_5xx)
-                .label("5xx".into())
+                .label("5xx")
                 .style(Style::default().fg(Color::Red)),
         ];
 
