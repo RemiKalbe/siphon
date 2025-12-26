@@ -158,8 +158,16 @@ impl ControlPlane {
 
                                 // Generate or validate subdomain
                                 let subdomain = subdomain.unwrap_or_else(|| {
-                                    // Generate random subdomain
-                                    Uuid::new_v4().to_string()[..8].to_string()
+                                    // Generate random subdomain (ensure first char is a letter)
+                                    let id = Uuid::new_v4().to_string();
+                                    let first = id.chars().next().unwrap();
+                                    let prefix = if first.is_ascii_digit() {
+                                        // Map 0-9 to a-j
+                                        char::from(b'a' + first.to_digit(10).unwrap() as u8)
+                                    } else {
+                                        first
+                                    };
+                                    format!("{}{}", prefix, &id[1..8])
                                 });
 
                                 // Validate subdomain format
