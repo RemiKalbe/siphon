@@ -39,3 +39,4 @@ dashmap = { workspace = true }
 bytes = { workspace = true }
 parking_lot = { workspace = true }
 ureq = { version = "2", features = ["tls"] }
+rcgen = "0.13"
