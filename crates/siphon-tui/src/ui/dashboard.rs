@@ -20,7 +20,8 @@ pub struct Dashboard;
 
 impl Dashboard {
     /// Render the complete dashboard
-    pub fn render(frame: &mut Frame, snapshot: &MetricsSnapshot) {
+    /// `copy_feedback` is Some(true) if copy succeeded, Some(false) if failed, None if no feedback
+    pub fn render(frame: &mut Frame, snapshot: &MetricsSnapshot, copy_feedback: Option<bool>) {
         // Clear entire frame to prevent artifacts on resize
         frame.render_widget(Clear, frame.area());
 
@@ -36,7 +37,7 @@ impl Dashboard {
             .split(frame.area());
 
         // Header: Tunnel info panel
-        Self::render_tunnel_info(frame, main_chunks[0], snapshot);
+        Self::render_tunnel_info(frame, main_chunks[0], snapshot, copy_feedback);
 
         // Middle top: 2-column layout
         let top_chunks = Layout::default()
@@ -60,7 +61,12 @@ impl Dashboard {
         Self::render_live_log(frame, main_chunks[3], snapshot);
     }
 
-    fn render_tunnel_info(frame: &mut Frame, area: Rect, snapshot: &MetricsSnapshot) {
+    fn render_tunnel_info(
+        frame: &mut Frame,
+        area: Rect,
+        snapshot: &MetricsSnapshot,
+        copy_feedback: Option<bool>,
+    ) {
         let block = Block::default()
             .title(" Siphon - Tunnel Status ")
             .title_style(
@@ -85,9 +91,35 @@ impl Dashboard {
 
             let tunnel_type = format!("{:?}", info.tunnel_type);
 
-            // Create clickable hyperlink for the URL using raw escape sequences
-            // Note: ratatui doesn't handle escape sequences in content length calculation,
-            // so we render the URL separately to ensure proper display
+            // Build helper line with copy feedback if present
+            let helper_line = match copy_feedback {
+                Some(true) => Line::from(vec![
+                    Span::styled("Copied! ", Style::default().fg(Color::Green)),
+                    Span::styled("Press ", Style::default().fg(Color::DarkGray)),
+                    Span::styled("q", Style::default().fg(Color::Yellow)),
+                    Span::styled("/", Style::default().fg(Color::DarkGray)),
+                    Span::styled("Esc", Style::default().fg(Color::Yellow)),
+                    Span::styled(" quit", Style::default().fg(Color::DarkGray)),
+                ]),
+                Some(false) => Line::from(vec![
+                    Span::styled("Copy failed ", Style::default().fg(Color::Red)),
+                    Span::styled("Press ", Style::default().fg(Color::DarkGray)),
+                    Span::styled("q", Style::default().fg(Color::Yellow)),
+                    Span::styled("/", Style::default().fg(Color::DarkGray)),
+                    Span::styled("Esc", Style::default().fg(Color::Yellow)),
+                    Span::styled(" quit", Style::default().fg(Color::DarkGray)),
+                ]),
+                None => Line::from(vec![
+                    Span::styled("Press ", Style::default().fg(Color::DarkGray)),
+                    Span::styled("c", Style::default().fg(Color::Yellow)),
+                    Span::styled(" copy URL  ", Style::default().fg(Color::DarkGray)),
+                    Span::styled("q", Style::default().fg(Color::Yellow)),
+                    Span::styled("/", Style::default().fg(Color::DarkGray)),
+                    Span::styled("Esc", Style::default().fg(Color::Yellow)),
+                    Span::styled(" quit", Style::default().fg(Color::DarkGray)),
+                ]),
+            };
+
             let text = vec![
                 Line::from(vec![
                     Span::styled("URL: ", Style::default().fg(Color::Gray)),
@@ -109,13 +141,7 @@ impl Dashboard {
                     Span::styled("Type: ", Style::default().fg(Color::Gray)),
                     Span::raw(&tunnel_type),
                 ]),
-                Line::from(vec![
-                    Span::styled("Press ", Style::default().fg(Color::DarkGray)),
-                    Span::styled("q", Style::default().fg(Color::Yellow)),
-                    Span::styled(" or ", Style::default().fg(Color::DarkGray)),
-                    Span::styled("Esc", Style::default().fg(Color::Yellow)),
-                    Span::styled(" to quit", Style::default().fg(Color::DarkGray)),
-                ]),
+                helper_line,
             ];
 
             let para = Paragraph::new(text);
@@ -130,7 +156,7 @@ impl Dashboard {
                 Line::from(vec![
                     Span::styled("Press ", Style::default().fg(Color::DarkGray)),
                     Span::styled("q", Style::default().fg(Color::Yellow)),
-                    Span::styled(" or ", Style::default().fg(Color::DarkGray)),
+                    Span::styled("/", Style::default().fg(Color::DarkGray)),
                     Span::styled("Esc", Style::default().fg(Color::Yellow)),
                     Span::styled(" to quit", Style::default().fg(Color::DarkGray)),
                 ]),

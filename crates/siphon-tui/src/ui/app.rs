@@ -1,5 +1,6 @@
 //! Main TUI application with event loop
 
+use arboard::Clipboard;
 use crossterm::{
     event::{
         self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode, KeyEventKind, KeyModifiers,
@@ -59,6 +60,8 @@ impl TuiApp {
     async fn run_loop<B: Backend>(&self, terminal: &mut Terminal<B>) -> io::Result<()> {
         let tick_rate = Duration::from_millis(100);
         let mut last_tick = std::time::Instant::now();
+        let mut clipboard = Clipboard::new().ok();
+        let mut copy_feedback: Option<(std::time::Instant, bool)> = None;
 
         loop {
             // Tick metrics for time-series updates (once per second)
@@ -67,9 +70,17 @@ impl TuiApp {
                 last_tick = std::time::Instant::now();
             }
 
+            // Clear copy feedback after 2 seconds
+            if let Some((time, _)) = copy_feedback {
+                if time.elapsed() > Duration::from_secs(2) {
+                    copy_feedback = None;
+                }
+            }
+
             // Draw UI
             let snapshot = self.metrics.snapshot();
-            terminal.draw(|f| Dashboard::render(f, &snapshot))?;
+            let feedback = copy_feedback.map(|(_, success)| success);
+            terminal.draw(|f| Dashboard::render(f, &snapshot, feedback))?;
 
             // Handle events with timeout
             let timeout = tick_rate.saturating_sub(last_tick.elapsed());
@@ -87,6 +98,19 @@ impl TuiApp {
                                 {
                                     let _ = self.shutdown_tx.send(()).await;
                                     return Ok(());
+                                }
+                                KeyCode::Char('c') => {
+                                    // Copy tunnel URL to clipboard
+                                    if let Some(ref info) = snapshot.tunnel_info {
+                                        if let Some(ref mut cb) = clipboard {
+                                            let success = cb.set_text(info.url.clone()).is_ok();
+                                            copy_feedback =
+                                                Some((std::time::Instant::now(), success));
+                                        } else {
+                                            copy_feedback =
+                                                Some((std::time::Instant::now(), false));
+                                        }
+                                    }
                                 }
                                 _ => {}
                             }
