@@ -135,17 +135,10 @@ impl TunnelConnection {
                                 url,
                                 port,
                             } => {
-                                tracing::info!("Tunnel established!");
-                                tracing::info!("  Subdomain: {}", subdomain);
-                                tracing::info!("  URL: {}", url);
+                                tracing::info!("Tunnel established: {} -> {}", url, http_forwarder.local_addr());
                                 if let Some(p) = port {
-                                    tracing::info!("  TCP Port: {}", p);
+                                    tracing::debug!("  TCP Port: {}", p);
                                 }
-                                println!(
-                                    "\n  Forwarding {} -> {}\n",
-                                    url,
-                                    http_forwarder.local_addr()
-                                );
 
                                 // Update metrics with tunnel info for TUI
                                 metrics.set_tunnel_info(TunnelInfo {
