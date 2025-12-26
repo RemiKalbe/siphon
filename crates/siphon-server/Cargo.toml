@@ -9,6 +9,10 @@ readme = "../../README.md"
 keywords = ["tunnel", "proxy", "mtls", "server", "cloudflare"]
 categories = ["command-line-utilities", "network-programming"]
 
+[lib]
+name = "siphon_server"
+path = "src/lib.rs"
+
 [[bin]]
 name = "siphon-server"
 path = "src/main.rs"
@@ -40,3 +44,4 @@ parking_lot = { workspace = true }
 ureq = "3"
 rcgen = "0.14.6"
 cuid2 = "0.1.4"
+async-trait = { workspace = true }

@@ -1,0 +1,38 @@
+[package]
+name = "siphon-e2e"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "End-to-end tests for the Siphon tunnel system"
+publish = false
+
+[dependencies]
+# Workspace crates
+siphon-server = { path = "../siphon-server" }
+siphon-protocol = { workspace = true }
+siphon-common = { workspace = true }
+
+# Async runtime
+tokio = { workspace = true }
+tokio-rustls = { workspace = true }
+tokio-util = { workspace = true }
+rustls = { workspace = true }
+
+# HTTP
+hyper = { workspace = true }
+hyper-util = { workspace = true }
+http-body-util = { workspace = true }
+reqwest = { workspace = true }
+
+# Certificate generation (already a dep of siphon-server)
+rcgen = "0.14"
+
+# Utilities
+async-trait = { workspace = true }
+dashmap = { workspace = true }
+parking_lot = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+anyhow = { workspace = true }
+thiserror = { workspace = true }
+bytes = { workspace = true }

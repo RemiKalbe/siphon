@@ -12,7 +12,7 @@ use tokio_util::codec::{Decoder, Encoder};
 
 use siphon_protocol::{ClientMessage, ServerMessage, TunnelCodec, TunnelType};
 
-use crate::cloudflare::CloudflareClient;
+use crate::dns_provider::DnsProvider;
 use crate::router::{Router, TunnelHandle};
 use crate::state::{HttpResponseData, ResponseRegistry, TcpConnectionRegistry};
 use crate::tcp_plane::TcpPlane;
@@ -21,7 +21,7 @@ use crate::tcp_plane::TcpPlane;
 pub struct ControlPlane {
     router: Arc<Router>,
     tls_acceptor: TlsAcceptor,
-    cloudflare: Arc<CloudflareClient>,
+    dns_provider: Arc<dyn DnsProvider>,
     base_domain: String,
     response_registry: ResponseRegistry,
     tcp_plane: Arc<TcpPlane>,
@@ -32,7 +32,7 @@ impl ControlPlane {
     pub fn new(
         router: Arc<Router>,
         tls_acceptor: TlsAcceptor,
-        cloudflare: Arc<CloudflareClient>,
+        dns_provider: Arc<dyn DnsProvider>,
         base_domain: String,
         response_registry: ResponseRegistry,
         tcp_plane: Arc<TcpPlane>,
@@ -41,7 +41,7 @@ impl ControlPlane {
         Arc::new(Self {
             router,
             tls_acceptor,
-            cloudflare,
+            dns_provider,
             base_domain,
             response_registry,
             tcp_plane,
@@ -53,7 +53,14 @@ impl ControlPlane {
     pub async fn run(self: Arc<Self>, addr: SocketAddr) -> Result<()> {
         let listener = TcpListener::bind(addr).await?;
         tracing::info!("Control plane listening on {}", addr);
+        self.run_with_listener(listener).await
+    }
 
+    /// Start accepting connections from a pre-bound listener
+    ///
+    /// This is useful for testing where the caller wants to bind to an
+    /// ephemeral port and get the actual address before starting the server.
+    pub async fn run_with_listener(self: Arc<Self>, listener: TcpListener) -> Result<()> {
         loop {
             let (stream, peer_addr) = listener.accept().await?;
             let this = self.clone();
@@ -89,7 +96,7 @@ impl ControlPlane {
 
         // Read loop: process incoming messages from client
         let router = self.router.clone();
-        let cloudflare = self.cloudflare.clone();
+        let dns_provider = self.dns_provider.clone();
         let base_domain = self.base_domain.clone();
         let client_id_clone = client_id.clone();
         let response_registry = self.response_registry.clone();
@@ -209,7 +216,7 @@ impl ControlPlane {
 
                                 // Create DNS record
                                 let proxied = tunnel_type == TunnelType::Http;
-                                match cloudflare.create_record(&subdomain, proxied).await {
+                                match dns_provider.create_record(&subdomain, proxied).await {
                                     Ok(record_id) => {
                                         // Create tunnel handle
                                         let handle = TunnelHandle {
@@ -358,7 +365,7 @@ impl ControlPlane {
             if let Some(handle) = router.unregister(subdomain) {
                 // Delete DNS record
                 if let Some(record_id) = handle.dns_record_id {
-                    if let Err(e) = cloudflare.delete_record(&record_id).await {
+                    if let Err(e) = dns_provider.delete_record(&record_id).await {
                         tracing::error!("Failed to delete DNS record: {}", e);
                     }
                 }

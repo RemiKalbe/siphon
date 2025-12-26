@@ -44,6 +44,7 @@ anyhow = "1"
 dashmap = "6"
 bytes = "1"
 parking_lot = "0.12"
+async-trait = "0.1"
 
 # TUI
 ratatui = "0.30.0"
