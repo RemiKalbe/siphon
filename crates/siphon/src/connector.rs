@@ -1,5 +1,6 @@
 use anyhow::Result;
 use bytes::BytesMut;
+use siphon_tui::metrics::{MetricsCollector, TunnelInfo};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpStream;
 use tokio_rustls::client::TlsStream;
@@ -14,13 +15,22 @@ use crate::tcp_forwarder::TcpForwarder;
 pub struct TunnelConnection {
     tls_stream: TlsStream<TcpStream>,
     local_addr: String,
+    metrics: MetricsCollector,
+    tunnel_type: TunnelType,
 }
 
 impl TunnelConnection {
-    pub fn new(tls_stream: TlsStream<TcpStream>, local_addr: String) -> Self {
+    pub fn new(
+        tls_stream: TlsStream<TcpStream>,
+        local_addr: String,
+        metrics: MetricsCollector,
+        tunnel_type: TunnelType,
+    ) -> Self {
         Self {
             tls_stream,
             local_addr,
+            metrics,
+            tunnel_type,
         }
     }
 
@@ -59,6 +69,8 @@ impl TunnelConnection {
     /// Run the tunnel connection, processing messages until disconnection
     pub async fn run(self) -> Result<()> {
         let local_addr = self.local_addr.clone();
+        let metrics = self.metrics.clone();
+        let tunnel_type = self.tunnel_type.clone();
         let (read_half, write_half) = tokio::io::split(self.tls_stream);
 
         // Channel for sending responses back to server
@@ -129,6 +141,14 @@ impl TunnelConnection {
                                     url,
                                     http_forwarder.local_addr()
                                 );
+
+                                // Update metrics with tunnel info for TUI
+                                metrics.set_tunnel_info(TunnelInfo {
+                                    subdomain: subdomain.clone(),
+                                    url: url.clone(),
+                                    port,
+                                    tunnel_type: tunnel_type.clone(),
+                                });
                             }
                             ServerMessage::TunnelDenied { reason } => {
                                 tracing::error!("Tunnel denied: {}", reason);
