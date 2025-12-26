@@ -728,7 +728,7 @@ async fn run_tunnel(
     tunnel_type: TunnelType,
     tls_connector: TlsConnector,
     server_name: ServerName<'static>,
-    _metrics: MetricsCollector,
+    metrics: MetricsCollector,
 ) -> Result<()> {
     // Connect to server
     let stream = TcpStream::connect(server_addr).await?;
@@ -737,7 +737,8 @@ async fn run_tunnel(
     let tls_stream = tls_connector.connect(server_name, stream).await?;
 
     // Create tunnel connection handler
-    let mut connection = TunnelConnection::new(tls_stream, local_addr.to_string());
+    let mut connection =
+        TunnelConnection::new(tls_stream, local_addr.to_string(), metrics, tunnel_type.clone());
 
     // Request tunnel
     connection.request_tunnel(subdomain, tunnel_type).await?;
