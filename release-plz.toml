@@ -12,10 +12,14 @@ semver_check = true
 release_commits = "^(chore|release)"
 
 [changelog]
-# Don't include release commits in changelog
+# Don't include CI/release commits in changelog or trigger releases
 commit_parsers = [
     { message = "^chore: release", skip = true },
     { message = "^release", skip = true },
+    { message = "^ci", skip = true },
+    { message = "^fix\\(ci\\)", skip = true },
+    { message = "^chore\\(ci\\)", skip = true },
+    { message = "^build\\(ci\\)", skip = true },
 ]
 
 # Publish all crates (dependencies must exist on crates.io for binaries to publish)
