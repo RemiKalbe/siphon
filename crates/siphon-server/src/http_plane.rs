@@ -82,6 +82,7 @@ impl HttpPlane {
 
         loop {
             let (stream, peer_addr) = listener.accept().await?;
+            tracing::debug!("HTTP plane accepted connection from {}", peer_addr);
             let this = self.clone();
 
             tokio::spawn(async move {
@@ -107,6 +108,13 @@ impl HttpPlane {
         self: Arc<Self>,
         req: Request<Incoming>,
     ) -> Result<Response<Full<Bytes>>, Infallible> {
+        tracing::debug!(
+            "HTTP request: {} {} (Host: {:?})",
+            req.method(),
+            req.uri(),
+            req.headers().get("host")
+        );
+
         // Extract subdomain from Host header
         let subdomain = match self.extract_subdomain(&req) {
             Some(s) => s,

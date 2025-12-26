@@ -168,10 +168,26 @@ impl TunnelConnection {
                                 // Forward request to local service
                                 let tx = response_tx.clone();
                                 let fwd = http_forwarder.clone();
+                                let metrics_clone = metrics.clone();
+                                let method_clone = method.clone();
+                                let uri_clone = uri.clone();
+
+                                metrics.record_request_start();
+                                let start = std::time::Instant::now();
 
                                 tokio::spawn(async move {
                                     match fwd.forward_http(method, uri, headers, body).await {
                                         Ok((status, resp_headers, resp_body)) => {
+                                            let duration = start.elapsed();
+                                            let bytes = resp_body.len();
+                                            metrics_clone.record_request_complete(
+                                                status,
+                                                duration,
+                                                bytes,
+                                                method_clone,
+                                                uri_clone,
+                                            );
+
                                             let msg = ClientMessage::HttpResponse {
                                                 stream_id,
                                                 status,
@@ -181,18 +197,31 @@ impl TunnelConnection {
                                             let _ = tx.send(msg).await;
                                         }
                                         Err(e) => {
-                                            tracing::error!(
-                                                "Failed to forward request {}: {}",
-                                                stream_id,
+                                            let duration = start.elapsed();
+                                            let err_msg = format!("Forwarding error: {}", e);
+                                            metrics_clone.record_error(format!(
+                                                "Failed to forward {} {}: {}",
+                                                method_clone, uri_clone, e
+                                            ));
+                                            metrics_clone.record_request_complete(
+                                                502,
+                                                duration,
+                                                err_msg.len(),
+                                                method_clone,
+                                                uri_clone.clone(),
+                                            );
+
+                                            tracing::warn!(
+                                                "Failed to forward request to local service: {}",
                                                 e
                                             );
+
                                             // Send error response
                                             let msg = ClientMessage::HttpResponse {
                                                 stream_id,
                                                 status: 502,
                                                 headers: vec![],
-                                                body: format!("Forwarding error: {}", e)
-                                                    .into_bytes(),
+                                                body: err_msg.into_bytes(),
                                             };
                                             let _ = tx.send(msg).await;
                                         }
