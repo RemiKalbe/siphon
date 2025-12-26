@@ -21,6 +21,9 @@ pub struct Dashboard;
 impl Dashboard {
     /// Render the complete dashboard
     pub fn render(frame: &mut Frame, snapshot: &MetricsSnapshot) {
+        // Clear entire frame to prevent artifacts on resize
+        frame.render_widget(Clear, frame.area());
+
         // Main layout: 4 rows
         let main_chunks = Layout::default()
             .direction(Direction::Vertical)
@@ -71,6 +74,9 @@ impl Dashboard {
         let inner = block.inner(area);
         frame.render_widget(block, area);
 
+        // Clear inner area first to prevent rendering artifacts on resize
+        frame.render_widget(Clear, inner);
+
         if let Some(ref info) = snapshot.tunnel_info {
             let uptime = snapshot
                 .uptime
@@ -79,14 +85,14 @@ impl Dashboard {
 
             let tunnel_type = format!("{:?}", info.tunnel_type);
 
-            // Create clickable hyperlink for the URL
-            let hyperlink_url = make_hyperlink(&info.url, &info.url);
-
+            // Create clickable hyperlink for the URL using raw escape sequences
+            // Note: ratatui doesn't handle escape sequences in content length calculation,
+            // so we render the URL separately to ensure proper display
             let text = vec![
                 Line::from(vec![
                     Span::styled("URL: ", Style::default().fg(Color::Gray)),
                     Span::styled(
-                        hyperlink_url,
+                        &info.url,
                         Style::default()
                             .fg(Color::Green)
                             .add_modifier(Modifier::BOLD)
@@ -457,12 +463,6 @@ impl Dashboard {
 }
 
 // Helper functions
-
-/// Create an OSC 8 hyperlink that works in supported terminal emulators
-/// Format: \x1b]8;;URL\x1b\\TEXT\x1b]8;;\x1b\\
-fn make_hyperlink(url: &str, text: &str) -> String {
-    format!("\x1b]8;;{}\x1b\\{}\x1b]8;;\x1b\\", url, text)
-}
 
 fn format_duration(d: Duration) -> String {
     let secs = d.as_secs();
