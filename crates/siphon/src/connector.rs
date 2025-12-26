@@ -97,6 +97,11 @@ impl TunnelConnection {
                     break;
                 }
             }
+
+            // Send TLS close_notify for graceful shutdown
+            if let Err(e) = write_half.shutdown().await {
+                tracing::debug!("TLS shutdown: {}", e);
+            }
         });
 
         // Read loop
@@ -223,7 +228,12 @@ impl TunnelConnection {
             }
         }
 
-        write_handle.abort();
+        // Drop the sender to signal the write task to shutdown gracefully
+        drop(response_tx);
+
+        // Wait for the write task to complete (sends TLS close_notify)
+        let _ = write_handle.await;
+
         Ok(())
     }
 }
