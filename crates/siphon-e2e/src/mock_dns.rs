@@ -90,7 +90,8 @@ impl DnsProvider for MockDnsProvider {
             "mock-record-{}",
             self.record_counter.fetch_add(1, Ordering::Relaxed)
         );
-        self.records.insert(record_id.clone(), subdomain.to_string());
+        self.records
+            .insert(record_id.clone(), subdomain.to_string());
         tracing::debug!(
             "MockDnsProvider: created record {} for {}",
             record_id,

@@ -120,8 +120,12 @@ mod tests {
 
         // Verify PEM format
         assert!(certs.ca_cert_pem.contains("-----BEGIN CERTIFICATE-----"));
-        assert!(certs.server_cert_pem.contains("-----BEGIN CERTIFICATE-----"));
-        assert!(certs.client_cert_pem.contains("-----BEGIN CERTIFICATE-----"));
+        assert!(certs
+            .server_cert_pem
+            .contains("-----BEGIN CERTIFICATE-----"));
+        assert!(certs
+            .client_cert_pem
+            .contains("-----BEGIN CERTIFICATE-----"));
         assert!(certs.ca_key_pem.contains("-----BEGIN PRIVATE KEY-----"));
         assert!(certs.server_key_pem.contains("-----BEGIN PRIVATE KEY-----"));
         assert!(certs.client_key_pem.contains("-----BEGIN PRIVATE KEY-----"));

@@ -118,9 +118,7 @@ impl MockHttpService {
                             }
 
                             Ok::<_, Infallible>(
-                                builder
-                                    .body(Full::new(Bytes::from(resp_body)))
-                                    .unwrap(),
+                                builder.body(Full::new(Bytes::from(resp_body))).unwrap(),
                             )
                         }
                     });
