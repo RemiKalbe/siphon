@@ -30,7 +30,6 @@ serde = { workspace = true }
 serde_json = { workspace = true }
 toml = { workspace = true }
 clap = { workspace = true }
-uuid = { workspace = true }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
 thiserror = { workspace = true }
@@ -40,3 +39,4 @@ bytes = { workspace = true }
 parking_lot = { workspace = true }
 ureq = { version = "2", features = ["tls"] }
 rcgen = "0.13"
+cuid2 = "0.1.4"

@@ -135,7 +135,11 @@ impl TunnelConnection {
                                 url,
                                 port,
                             } => {
-                                tracing::info!("Tunnel established: {} -> {}", url, http_forwarder.local_addr());
+                                tracing::info!(
+                                    "Tunnel established: {} -> {}",
+                                    url,
+                                    http_forwarder.local_addr()
+                                );
                                 if let Some(p) = port {
                                     tracing::debug!("  TCP Port: {}", p);
                                 }

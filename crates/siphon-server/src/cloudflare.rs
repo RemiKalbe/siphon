@@ -240,9 +240,8 @@ impl CloudflareClient {
         );
 
         // Generate a new key pair
-        let key_pair = KeyPair::generate().map_err(|e| {
-            CloudflareError::Api(format!("Failed to generate key pair: {}", e))
-        })?;
+        let key_pair = KeyPair::generate()
+            .map_err(|e| CloudflareError::Api(format!("Failed to generate key pair: {}", e)))?;
 
         // Create certificate parameters for CSR
         let mut params = CertificateParams::default();
@@ -253,17 +252,17 @@ impl CloudflareClient {
             .serialize_request(&key_pair)
             .map_err(|e| CloudflareError::Api(format!("Failed to generate CSR: {}", e)))?;
 
-        let csr_pem = csr.pem().map_err(|e| {
-            CloudflareError::Api(format!("Failed to encode CSR as PEM: {}", e))
-        })?;
+        let csr_pem = csr
+            .pem()
+            .map_err(|e| CloudflareError::Api(format!("Failed to encode CSR as PEM: {}", e)))?;
 
         // Hostnames: wildcard + base domain
-        let hostnames = vec![
-            format!("*.{}", self.base_domain),
-            self.base_domain.clone(),
-        ];
+        let hostnames = vec![format!("*.{}", self.base_domain), self.base_domain.clone()];
 
-        tracing::debug!("Requesting Origin CA certificate for hostnames: {:?}", hostnames);
+        tracing::debug!(
+            "Requesting Origin CA certificate for hostnames: {:?}",
+            hostnames
+        );
 
         // Request certificate from Cloudflare Origin CA
         // Use origin-ecc since rcgen generates ECDSA keys by default
@@ -394,9 +393,10 @@ impl CloudflareClient {
         let mut revoked = 0;
         for cert in certs {
             // Check if this certificate is for our domain
-            let matches = cert.hostnames.iter().any(|h| {
-                h == &self.base_domain || h == &wildcard
-            });
+            let matches = cert
+                .hostnames
+                .iter()
+                .any(|h| h == &self.base_domain || h == &wildcard);
 
             if matches {
                 tracing::info!(

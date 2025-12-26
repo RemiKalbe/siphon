@@ -737,8 +737,12 @@ async fn run_tunnel(
     let tls_stream = tls_connector.connect(server_name, stream).await?;
 
     // Create tunnel connection handler
-    let mut connection =
-        TunnelConnection::new(tls_stream, local_addr.to_string(), metrics, tunnel_type.clone());
+    let mut connection = TunnelConnection::new(
+        tls_stream,
+        local_addr.to_string(),
+        metrics,
+        tunnel_type.clone(),
+    );
 
     // Request tunnel
     connection.request_tunnel(subdomain, tunnel_type).await?;

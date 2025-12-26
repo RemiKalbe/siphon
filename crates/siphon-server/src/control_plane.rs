@@ -3,12 +3,12 @@ use std::sync::Arc;
 
 use anyhow::Result;
 use bytes::BytesMut;
+use cuid2::CuidConstructor;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::mpsc;
 use tokio_rustls::TlsAcceptor;
 use tokio_util::codec::{Decoder, Encoder};
-use uuid::Uuid;
 
 use siphon_protocol::{ClientMessage, ServerMessage, TunnelCodec, TunnelType};
 
@@ -158,16 +158,8 @@ impl ControlPlane {
 
                                 // Generate or validate subdomain
                                 let subdomain = subdomain.unwrap_or_else(|| {
-                                    // Generate random subdomain (ensure first char is a letter)
-                                    let id = Uuid::new_v4().to_string();
-                                    let first = id.chars().next().unwrap();
-                                    let prefix = if first.is_ascii_digit() {
-                                        // Map 0-9 to a-j
-                                        char::from(b'a' + first.to_digit(10).unwrap() as u8)
-                                    } else {
-                                        first
-                                    };
-                                    format!("{}{}", prefix, &id[1..8])
+                                    // Generate random subdomain using cuid2 (always starts with a letter)
+                                    CuidConstructor::new().with_length(8).create_id()
                                 });
 
                                 // Validate subdomain format
@@ -400,7 +392,10 @@ fn extract_client_id<S>(tls_stream: &tokio_rustls::server::TlsStream<S>) -> Stri
         }
     }
 
-    format!("unknown-{}", Uuid::new_v4())
+    format!(
+        "unknown-{}",
+        CuidConstructor::new().with_length(8).create_id()
+    )
 }
 
 /// Validate subdomain format (alphanumeric and hyphens only)

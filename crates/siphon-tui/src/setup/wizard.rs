@@ -80,7 +80,7 @@ impl SetupWizard {
 
         // Create rustyline editors
         let config = Config::builder().auto_add_history(false).build();
-        let mut text_editor: Editor<(), DefaultHistory> = Editor::with_config(config.clone())?;
+        let mut text_editor: Editor<(), DefaultHistory> = Editor::with_config(config)?;
         let mut path_editor: Editor<PathHelper, DefaultHistory> = Editor::with_config(config)?;
         path_editor.set_helper(Some(PathHelper::new()));
 
@@ -399,9 +399,9 @@ impl SetupWizard {
         println!();
 
         // Build colored prompt
-        let prompt = format!("\x1b[36m  › \x1b[0m");
+        let prompt = "\x1b[36m  › \x1b[0m";
 
-        match editor.readline(&prompt) {
+        match editor.readline(prompt) {
             Ok(line) => Ok(Some(line.trim().to_string())),
             Err(ReadlineError::Interrupted | ReadlineError::Eof) => Ok(None),
             Err(e) => Err(e.into()),
@@ -426,9 +426,9 @@ impl SetupWizard {
         println!();
 
         // Build colored prompt
-        let prompt = format!("\x1b[36m  › \x1b[0m");
+        let prompt = "\x1b[36m  › \x1b[0m";
 
-        match editor.readline(&prompt) {
+        match editor.readline(prompt) {
             Ok(line) => Ok(Some(line.trim().to_string())),
             Err(ReadlineError::Interrupted | ReadlineError::Eof) => Ok(None),
             Err(e) => Err(e.into()),
