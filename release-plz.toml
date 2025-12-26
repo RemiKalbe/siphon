@@ -8,6 +8,16 @@ git_tag_enable = true
 publish = true
 semver_check = true
 
+# Ignore release-plz's own commits
+release_commits = "^(chore|release)"
+
+[changelog]
+# Don't include release commits in changelog
+commit_parsers = [
+    { message = "^chore: release", skip = true },
+    { message = "^release", skip = true },
+]
+
 # Publish all crates (dependencies must exist on crates.io for binaries to publish)
 [[package]]
 name = "siphon-common"
