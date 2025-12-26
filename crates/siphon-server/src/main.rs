@@ -158,8 +158,10 @@ async fn main() -> Result<()> {
     );
 
     // Start servers
-    let control_addr: SocketAddr = format!("0.0.0.0:{}", config.control_port).parse()?;
-    let http_addr: SocketAddr = format!("0.0.0.0:{}", config.http_port).parse()?;
+    // SIPHON_BIND_HOST: use [::] for IPv6/dual-stack, 0.0.0.0 for IPv4 only (default)
+    let bind_host = std::env::var("SIPHON_BIND_HOST").unwrap_or_else(|_| "0.0.0.0".to_string());
+    let control_addr: SocketAddr = format!("{}:{}", bind_host, config.control_port).parse()?;
+    let http_addr: SocketAddr = format!("{}:{}", bind_host, config.http_port).parse()?;
 
     tracing::info!("Starting control plane on {}", control_addr);
     tracing::info!("Starting HTTP plane on {}", http_addr);
