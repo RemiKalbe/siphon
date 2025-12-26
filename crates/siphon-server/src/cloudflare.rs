@@ -266,6 +266,7 @@ impl CloudflareClient {
         tracing::debug!("Requesting Origin CA certificate for hostnames: {:?}", hostnames);
 
         // Request certificate from Cloudflare Origin CA
+        // Use origin-ecc since rcgen generates ECDSA keys by default
         let response = self
             .client
             .post("https://api.cloudflare.com/client/v4/certificates")
@@ -273,7 +274,7 @@ impl CloudflareClient {
             .json(&CreateOriginCertRequest {
                 csr: csr_pem,
                 hostnames,
-                request_type: "origin-rsa".to_string(),
+                request_type: "origin-ecc".to_string(),
                 requested_validity: validity_days,
             })
             .send()
