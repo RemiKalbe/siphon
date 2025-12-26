@@ -92,7 +92,7 @@ impl HttpPlane {
                             this.serve_connection(tls_stream, peer_addr).await;
                         }
                         Err(e) => {
-                            tracing::debug!("TLS handshake failed from {}: {}", peer_addr, e);
+                            tracing::warn!("TLS handshake failed from {}: {}", peer_addr, e);
                         }
                     }
                 } else {
