@@ -142,8 +142,8 @@ fn detect_public_ip() -> anyhow::Result<String> {
 
     for service in services {
         match ureq::get(service).call() {
-            Ok(response) => {
-                if let Ok(ip) = response.into_string() {
+            Ok(mut response) => {
+                if let Ok(ip) = response.body_mut().read_to_string() {
                     let ip = ip.trim().to_string();
                     if !ip.is_empty() {
                         tracing::info!("Detected public IP: {}", ip);
@@ -165,8 +165,8 @@ fn detect_public_ip() -> anyhow::Result<String> {
 /// Detect IP using Cloudflare's trace endpoint
 fn detect_ip_cloudflare() -> Option<String> {
     match ureq::get("https://cloudflare.com/cdn-cgi/trace").call() {
-        Ok(response) => {
-            if let Ok(body) = response.into_string() {
+        Ok(mut response) => {
+            if let Ok(body) = response.body_mut().read_to_string() {
                 // Parse "ip=x.x.x.x" from the response
                 for line in body.lines() {
                     if let Some(ip) = line.strip_prefix("ip=") {

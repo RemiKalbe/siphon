@@ -57,7 +57,10 @@ impl TuiApp {
         result
     }
 
-    async fn run_loop<B: Backend>(&self, terminal: &mut Terminal<B>) -> io::Result<()> {
+    async fn run_loop(
+        &self,
+        terminal: &mut Terminal<CrosstermBackend<io::Stdout>>,
+    ) -> io::Result<()> {
         let tick_rate = Duration::from_millis(100);
         let mut last_tick = std::time::Instant::now();
         let mut clipboard = Clipboard::new().ok();

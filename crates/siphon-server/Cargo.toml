@@ -37,6 +37,6 @@ anyhow = { workspace = true }
 dashmap = { workspace = true }
 bytes = { workspace = true }
 parking_lot = { workspace = true }
-ureq = { version = "2", features = ["tls"] }
-rcgen = "0.13"
+ureq = "3"
+rcgen = "0.14.6"
 cuid2 = "0.1.4"
