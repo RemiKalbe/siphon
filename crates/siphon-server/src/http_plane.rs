@@ -80,6 +80,14 @@ impl HttpPlane {
             tracing::info!("HTTP plane listening on {}", addr);
         }
 
+        self.run_with_listener(listener).await
+    }
+
+    /// Start accepting connections from a pre-bound listener
+    ///
+    /// This is useful for testing where the caller wants to bind to an
+    /// ephemeral port and get the actual address before starting the server.
+    pub async fn run_with_listener(self: Arc<Self>, listener: TcpListener) -> Result<()> {
         loop {
             let (stream, peer_addr) = listener.accept().await?;
             tracing::debug!("HTTP connection from {}", peer_addr);

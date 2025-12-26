@@ -1,9 +1,11 @@
+use async_trait::async_trait;
 use rcgen::{CertificateParams, KeyPair};
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
 use crate::config::{DnsTarget, ResolvedCloudflareConfig};
+use crate::dns_provider::{DnsError, DnsProvider, OriginCertificate};
 
 /// Cloudflare API client for DNS and Origin CA management
 pub struct CloudflareClient {
@@ -12,17 +14,6 @@ pub struct CloudflareClient {
     zone_id: String,
     dns_target: DnsTarget,
     base_domain: String,
-}
-
-/// Origin CA certificate and private key
-#[derive(Debug, Clone)]
-pub struct OriginCertificate {
-    /// PEM-encoded certificate
-    pub certificate: String,
-    /// PEM-encoded private key
-    pub private_key: String,
-    /// Certificate expiration date
-    pub expires_on: String,
 }
 
 #[derive(Debug, Serialize)]
@@ -419,5 +410,45 @@ impl CloudflareClient {
         }
 
         Ok(revoked)
+    }
+}
+
+impl From<CloudflareError> for DnsError {
+    fn from(err: CloudflareError) -> Self {
+        match err {
+            CloudflareError::Request(e) => DnsError::Request(e.to_string()),
+            CloudflareError::Api(msg) => DnsError::Api(msg),
+        }
+    }
+}
+
+#[async_trait]
+impl DnsProvider for CloudflareClient {
+    async fn create_record(&self, subdomain: &str, proxied: bool) -> Result<String, DnsError> {
+        CloudflareClient::create_record(self, subdomain, proxied)
+            .await
+            .map_err(Into::into)
+    }
+
+    async fn delete_record(&self, record_id: &str) -> Result<(), DnsError> {
+        CloudflareClient::delete_record(self, record_id)
+            .await
+            .map_err(Into::into)
+    }
+
+    async fn create_origin_certificate(
+        &self,
+        validity_days: u32,
+    ) -> Result<Option<OriginCertificate>, DnsError> {
+        CloudflareClient::create_origin_certificate(self, validity_days)
+            .await
+            .map(Some)
+            .map_err(Into::into)
+    }
+
+    async fn cleanup_old_origin_certificates(&self) -> Result<u32, DnsError> {
+        CloudflareClient::cleanup_old_origin_certificates(self)
+            .await
+            .map_err(Into::into)
     }
 }

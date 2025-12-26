@@ -9,6 +9,7 @@ use tracing_subscriber::EnvFilter;
 mod cloudflare;
 mod config;
 mod control_plane;
+mod dns_provider;
 mod http_plane;
 mod router;
 mod state;
