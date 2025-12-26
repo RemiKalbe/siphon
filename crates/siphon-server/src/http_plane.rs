@@ -82,7 +82,7 @@ impl HttpPlane {
 
         loop {
             let (stream, peer_addr) = listener.accept().await?;
-            tracing::debug!("HTTP plane accepted connection from {}", peer_addr);
+            tracing::debug!("HTTP connection from {}", peer_addr);
             let this = self.clone();
 
             tokio::spawn(async move {
@@ -127,7 +127,7 @@ impl HttpPlane {
             }
         };
 
-        tracing::debug!("Request for subdomain: {}", subdomain);
+        tracing::debug!("Forwarding to tunnel: {}", subdomain);
 
         // Find the tunnel for this subdomain
         let sender = match self.router.get_sender(&subdomain) {
