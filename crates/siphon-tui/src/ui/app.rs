@@ -74,20 +74,29 @@ impl TuiApp {
             // Handle events with timeout
             let timeout = tick_rate.saturating_sub(last_tick.elapsed());
             if crossterm::event::poll(timeout)? {
-                if let Event::Key(key) = event::read()? {
-                    if key.kind == KeyEventKind::Press {
-                        match key.code {
-                            KeyCode::Char('q') | KeyCode::Esc => {
-                                let _ = self.shutdown_tx.send(()).await;
-                                return Ok(());
+                match event::read()? {
+                    Event::Key(key) => {
+                        if key.kind == KeyEventKind::Press {
+                            match key.code {
+                                KeyCode::Char('q') | KeyCode::Esc => {
+                                    let _ = self.shutdown_tx.send(()).await;
+                                    return Ok(());
+                                }
+                                KeyCode::Char('c')
+                                    if key.modifiers.contains(KeyModifiers::CONTROL) =>
+                                {
+                                    let _ = self.shutdown_tx.send(()).await;
+                                    return Ok(());
+                                }
+                                _ => {}
                             }
-                            KeyCode::Char('c') if key.modifiers.contains(KeyModifiers::CONTROL) => {
-                                let _ = self.shutdown_tx.send(()).await;
-                                return Ok(());
-                            }
-                            _ => {}
                         }
                     }
+                    Event::Resize(_, _) => {
+                        // Force full redraw on resize
+                        terminal.clear()?;
+                    }
+                    _ => {}
                 }
             }
         }
