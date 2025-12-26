@@ -287,15 +287,22 @@ impl CloudflareClient {
                 .result
                 .ok_or_else(|| CloudflareError::Api("No certificate in response".to_string()))?;
 
+            let private_key_pem = key_pair.serialize_pem();
+
             tracing::info!(
                 "Created Origin CA certificate for *.{}, expires: {}",
                 self.base_domain,
                 cert_result.expires_on
             );
+            tracing::debug!(
+                "Certificate length: {} bytes, Key length: {} bytes",
+                cert_result.certificate.len(),
+                private_key_pem.len()
+            );
 
             Ok(OriginCertificate {
                 certificate: cert_result.certificate,
-                private_key: key_pair.serialize_pem(),
+                private_key: private_key_pem,
                 expires_on: cert_result.expires_on,
             })
         } else {

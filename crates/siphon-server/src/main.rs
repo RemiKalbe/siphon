@@ -131,11 +131,19 @@ async fn main() -> Result<()> {
                 origin_cert.expires_on
             );
 
+            // Validate certificate and key format
+            let cert_start = origin_cert.certificate.lines().next().unwrap_or("");
+            let key_start = origin_cert.private_key.lines().next().unwrap_or("");
+            tracing::debug!("Certificate starts with: {}", cert_start);
+            tracing::debug!("Private key starts with: {}", key_start);
+
             let http_tls_config = siphon_common::load_server_config_no_client_auth(
                 &origin_cert.certificate,
                 &origin_cert.private_key,
             )
             .context("Failed to load Origin CA TLS configuration")?;
+
+            tracing::info!("Origin CA TLS configuration loaded successfully");
             Some(TlsAcceptor::from(Arc::new(http_tls_config)))
         } else {
             tracing::info!("HTTP plane TLS: disabled (plain HTTP)");
