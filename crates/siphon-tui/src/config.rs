@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
 /// Siphon client configuration (connection settings only)
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct SiphonConfig {
     /// Tunnel server address (host:port)
     pub server_addr: String,
@@ -22,17 +22,6 @@ pub struct SiphonConfig {
 
     /// CA certificate reference (keychain://siphon/ca, file path, etc.)
     pub ca_cert: String,
-}
-
-impl Default for SiphonConfig {
-    fn default() -> Self {
-        Self {
-            server_addr: String::new(),
-            cert: String::new(),
-            key: String::new(),
-            ca_cert: String::new(),
-        }
-    }
 }
 
 impl SiphonConfig {
