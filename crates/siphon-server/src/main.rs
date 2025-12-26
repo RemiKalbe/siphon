@@ -40,13 +40,10 @@ async fn main() -> Result<()> {
         .expect("Failed to install rustls crypto provider");
 
     // Initialize logging
-    tracing_subscriber::fmt()
-        .with_env_filter(
-            EnvFilter::from_default_env()
-                .add_directive("siphon_server=info".parse()?)
-                .add_directive("siphon_common=info".parse()?),
-        )
-        .init();
+    // Use RUST_LOG if set, otherwise default to info for our crates
+    let env_filter = EnvFilter::try_from_default_env()
+        .unwrap_or_else(|_| EnvFilter::new("siphon_server=info,siphon_common=info"));
+    tracing_subscriber::fmt().with_env_filter(env_filter).init();
 
     let args = Args::parse();
     tracing::info!("Starting tunnel server with config: {}", args.config);

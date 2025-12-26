@@ -421,6 +421,7 @@ async fn run_tui_mode(
     severity(error),
     url("https://github.com/remikalbe/siphon#certificate-setup")
 )]
+#[allow(unused_assignments)]
 struct SanMismatchDiagnostic {
     expected: String,
     presented: Vec<String>,
@@ -452,6 +453,7 @@ impl std::error::Error for SanMismatchDiagnostic {}
 #[derive(Debug, miette::Diagnostic, thiserror::Error)]
 #[error("Certificate has expired")]
 #[diagnostic(code(siphon::tls::expired), severity(error))]
+#[allow(unused_assignments)]
 struct ExpiredCertDiagnostic {
     #[help]
     help: String,
@@ -461,6 +463,7 @@ struct ExpiredCertDiagnostic {
 #[derive(Debug, miette::Diagnostic, thiserror::Error)]
 #[error("Certificate issuer not trusted")]
 #[diagnostic(code(siphon::tls::unknown_issuer), severity(error))]
+#[allow(unused_assignments)]
 struct UnknownIssuerDiagnostic {
     #[help]
     help: String,
@@ -470,6 +473,7 @@ struct UnknownIssuerDiagnostic {
 #[derive(Debug, miette::Diagnostic, thiserror::Error)]
 #[error("{message}")]
 #[diagnostic(code(siphon::tls::error), severity(error))]
+#[allow(unused_assignments)]
 struct GenericTlsDiagnostic {
     message: String,
     #[help]
