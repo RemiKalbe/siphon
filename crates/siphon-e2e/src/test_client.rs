@@ -19,6 +19,9 @@ use siphon_protocol::{ClientMessage, ServerMessage, TunnelCodec, TunnelType};
 
 use crate::harness::TestServer;
 
+/// Type alias for TCP connection registry to avoid clippy::type_complexity
+type TcpConnectionMap = Arc<RwLock<HashMap<u64, mpsc::Sender<Vec<u8>>>>>;
+
 /// A test tunnel client
 pub struct TestClient {
     /// Handle to the spawned client task
@@ -151,8 +154,7 @@ async fn run_client(
     let (shutdown_tx, mut shutdown_rx) = mpsc::channel::<()>(1);
 
     // TCP connection state - maps stream_id to writer channel
-    let tcp_connections: Arc<RwLock<HashMap<u64, mpsc::Sender<Vec<u8>>>>> =
-        Arc::new(RwLock::new(HashMap::new()));
+    let tcp_connections: TcpConnectionMap = Arc::new(RwLock::new(HashMap::new()));
 
     // Spawn the main client loop
     let tcp_conns = tcp_connections.clone();
@@ -237,7 +239,7 @@ async fn handle_message(
     http_client: &reqwest::Client,
     local_addr: &str,
     response_tx: &mpsc::Sender<ClientMessage>,
-    tcp_connections: &Arc<RwLock<HashMap<u64, mpsc::Sender<Vec<u8>>>>>,
+    tcp_connections: &TcpConnectionMap,
 ) {
     match msg {
         ServerMessage::HttpRequest {

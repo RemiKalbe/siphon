@@ -31,6 +31,7 @@ pub enum DnsError {
 /// This abstraction allows the server to work with different DNS backends,
 /// such as Cloudflare for production or a mock implementation for testing.
 #[async_trait]
+#[allow(dead_code)]
 pub trait DnsProvider: Send + Sync {
     /// Create a DNS record for a subdomain
     ///

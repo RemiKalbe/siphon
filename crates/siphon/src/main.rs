@@ -414,74 +414,72 @@ async fn run_tui_mode(
     Ok(())
 }
 
-/// SAN mismatch diagnostic with detailed information
-#[derive(Debug, miette::Diagnostic)]
-#[diagnostic(
-    code(siphon::tls::san_mismatch),
-    severity(error),
-    url("https://github.com/remikalbe/siphon#certificate-setup")
-)]
-struct SanMismatchDiagnostic {
-    #[allow(unused)]
-    expected: String,
-    #[allow(unused)]
-    presented: Vec<String>,
+#[allow(unused_assignments)]
+mod tls_diagnostics {
+    /// SAN mismatch diagnostic with detailed information
+    #[derive(Debug, miette::Diagnostic)]
+    #[diagnostic(
+        code(siphon::tls::san_mismatch),
+        severity(error),
+        url("https://github.com/remikalbe/siphon#certificate-setup")
+    )]
+    pub struct SanMismatchDiagnostic {
+        pub expected: String,
+        pub presented: Vec<String>,
 
-    #[help]
-    #[allow(unused)]
-    help: String,
-}
+        #[help]
+        pub help: String,
+    }
 
-impl std::fmt::Display for SanMismatchDiagnostic {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        writeln!(f, "Certificate hostname mismatch")?;
-        writeln!(f)?;
-        writeln!(f, "  Expected hostname: {}", self.expected)?;
-        writeln!(f, "  Certificate is valid for:")?;
-        if self.presented.is_empty() {
-            writeln!(f, "    (no SANs found in certificate)")?;
-        } else {
-            for name in &self.presented {
-                writeln!(f, "    - {}", name)?;
+    impl std::fmt::Display for SanMismatchDiagnostic {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            writeln!(f, "Certificate hostname mismatch")?;
+            writeln!(f)?;
+            writeln!(f, "  Expected hostname: {}", self.expected)?;
+            writeln!(f, "  Certificate is valid for:")?;
+            if self.presented.is_empty() {
+                writeln!(f, "    (no SANs found in certificate)")?;
+            } else {
+                for name in &self.presented {
+                    writeln!(f, "    - {}", name)?;
+                }
             }
+            Ok(())
         }
-        Ok(())
+    }
+
+    impl std::error::Error for SanMismatchDiagnostic {}
+
+    /// Certificate expired diagnostic
+    #[derive(Debug, miette::Diagnostic, thiserror::Error)]
+    #[error("Certificate has expired")]
+    #[diagnostic(code(siphon::tls::expired), severity(error))]
+    pub struct ExpiredCertDiagnostic {
+        #[help]
+        pub help: String,
+    }
+
+    /// Unknown issuer diagnostic
+    #[derive(Debug, miette::Diagnostic, thiserror::Error)]
+    #[error("Certificate issuer not trusted")]
+    #[diagnostic(code(siphon::tls::unknown_issuer), severity(error))]
+    pub struct UnknownIssuerDiagnostic {
+        #[help]
+        pub help: String,
+    }
+
+    /// Generic TLS diagnostic for other errors
+    #[derive(Debug, miette::Diagnostic, thiserror::Error)]
+    #[error("{message}")]
+    #[diagnostic(code(siphon::tls::error), severity(error))]
+    pub struct GenericTlsDiagnostic {
+        pub message: String,
+        #[help]
+        pub help: String,
     }
 }
 
-impl std::error::Error for SanMismatchDiagnostic {}
-
-/// Certificate expired diagnostic
-#[derive(Debug, miette::Diagnostic, thiserror::Error)]
-#[error("Certificate has expired")]
-#[diagnostic(code(siphon::tls::expired), severity(error))]
-struct ExpiredCertDiagnostic {
-    #[help]
-    #[allow(unused)]
-    help: String,
-}
-
-/// Unknown issuer diagnostic
-#[derive(Debug, miette::Diagnostic, thiserror::Error)]
-#[error("Certificate issuer not trusted")]
-#[diagnostic(code(siphon::tls::unknown_issuer), severity(error))]
-struct UnknownIssuerDiagnostic {
-    #[help]
-    #[allow(unused)]
-    help: String,
-}
-
-/// Generic TLS diagnostic for other errors
-#[derive(Debug, miette::Diagnostic, thiserror::Error)]
-#[error("{message}")]
-#[diagnostic(code(siphon::tls::error), severity(error))]
-struct GenericTlsDiagnostic {
-    #[allow(unused)]
-    message: String,
-    #[help]
-    #[allow(unused)]
-    help: String,
-}
+use tls_diagnostics::*;
 
 /// Analyze an error and extract detailed TLS/certificate information if applicable
 fn analyze_tls_error(error: &anyhow::Error) -> Option<Box<dyn miette::Diagnostic + Send + Sync>> {
