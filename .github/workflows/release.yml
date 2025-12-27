@@ -3,7 +3,8 @@ name: Release
 on:
   push:
     tags:
-      - 'v*'
+      - 'siphon-v*'
+      - 'siphon-server-v*'
 
 permissions:
   contents: write
