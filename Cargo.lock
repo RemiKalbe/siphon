@@ -2827,7 +2827,7 @@ checksum = "56199f7ddabf13fe5074ce809e7d3f42b42ae711800501b5b16ea82ad029c39d"
 
 [[package]]
 name = "siphon"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "base64",
@@ -2858,7 +2858,7 @@ dependencies = [
 
 [[package]]
 name = "siphon-common"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "rustls",
  "rustls-pemfile",
@@ -2869,7 +2869,7 @@ dependencies = [
 
 [[package]]
 name = "siphon-e2e"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -2895,7 +2895,7 @@ dependencies = [
 
 [[package]]
 name = "siphon-protocol"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "bytes",
  "serde",
@@ -2906,7 +2906,7 @@ dependencies = [
 
 [[package]]
 name = "siphon-secrets"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "base64",
  "keyring",
@@ -2918,7 +2918,7 @@ dependencies = [
 
 [[package]]
 name = "siphon-server"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -2950,7 +2950,7 @@ dependencies = [
 
 [[package]]
 name = "siphon-tui"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "arboard",
